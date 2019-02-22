@@ -1,0 +1,11 @@
+Samo jednom:
+    1. sudo apt-get install nfs-kernel-server
+    2. u /etc/exports na racunaru dodati sljedecu liniju na kraj 
+            <apsolutna putanja MOUNT_FOLDER-a> *(rw,no_root_squash,no_subtree_check)
+    3. sudo service nfs-kernel-server restart
+
+Svaki put:tel
+4. sa racunara: telnet <ip_ploce> (password:root)
+5. sa ploce: mount -o port=2049,nolock,proto=tcp -t nfs <ip_racunara>:<MOUNT_FOLDER putanja> /mnt/PPUTVIOS_Student1
+
+mount -o port=2049,nolock,proto=tcp -t nfs 192.168.237.83:/home/student/pputvios1/ploca /mnt/PPUTVIOS_Student1

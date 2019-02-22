@@ -1,0 +1,1 @@
+02/12/2016 GS: Na osnovu prepiske "Unapredjenje predmeta PPuTViOS1" Vezbe su azurirane.

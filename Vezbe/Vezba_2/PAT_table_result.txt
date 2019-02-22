@@ -1,0 +1,30 @@
+PAT TABLE SECTION
+table_id                 |      0
+section_length           |      41
+transport_stream_id      |      1008
+section_number           |      0
+last_section_number      |      0
+-----------------------------------------
+program_number           |      0
+pid                      |      16
+-----------------------------------------
+program_number           |      490
+pid                      |      100
+-----------------------------------------
+program_number           |      491
+pid                      |      200
+-----------------------------------------
+program_number           |      492
+pid                      |      1000
+-----------------------------------------
+program_number           |      493
+pid                      |      1500
+-----------------------------------------
+program_number           |      495
+pid                      |      2000
+-----------------------------------------
+program_number           |      496
+pid                      |      2010
+-----------------------------------------
+program_number           |      497
+pid                      |      2020
