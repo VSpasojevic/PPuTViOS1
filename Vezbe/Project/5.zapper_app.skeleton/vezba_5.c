@@ -87,6 +87,27 @@ int main(int agrc,char** argv)
 				}
 				printf("Module: %d\n",confStruct->modul);
 				break;
+			case 3:	confStruct->programNumber = atoi(str);
+				printf("Program Number: %d\n",confStruct->programNumber);
+				break;
+			
+			case 4:	confStruct->videoPid = atoi(str);
+				printf("Video pid: %d\n",confStruct->videoPid);
+				break;
+			case 5:	confStruct->audioPid = atoi(str);
+				printf("Audio pid: %d\n",confStruct->audioPid);
+				break;
+
+			case 6:	if(strcmp(str,"VIDEO_TYPE_MPEG2") == 0){
+					confStruct->videoType = 42;
+				}
+				printf("Video type: %d\n",confStruct->videoType);
+				break;
+			case 7:	if(strcmp(str,"AUDIO_TYPE_MPEG_AUDIO") == 0){
+					confStruct->audioType = 10;
+				}
+				printf("Audio type: %d\n",confStruct->audioType);
+				break;
 			
 			default: printf("Bad argument\n");
 				break;

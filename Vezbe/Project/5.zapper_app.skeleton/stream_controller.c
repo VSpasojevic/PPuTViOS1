@@ -19,6 +19,15 @@ static int16_t programNumber = 0;
 static ChannelInfo currentChannel;
 static bool isInitialized = false;
 
+static uint16_t argVideoPid;
+static uint16_t argAudioPid;
+
+tStreamType argVideoType;
+tStreamType argAudioType;
+
+uint8_t firstV = 0;
+uint8_t firstA = 0;
+
 static struct timespec lockStatusWaitTime;
 static struct timeval now;
 static pthread_t scThread;
@@ -31,6 +40,26 @@ static void startChannel(int32_t channelNumber);
 
 StreamControllerError streamControllerInit(argStruct* arg_struct)
 {
+	
+
+	printf("Usao u stream controler INIT broj kanala za pocetak je %d\n",arg_struct->programNumber);
+	programNumber = arg_struct->programNumber - 1;
+	
+	argVideoPid = arg_struct->videoPid;
+	argAudioPid = arg_struct->audioPid;
+
+	argVideoType = arg_struct->videoType;
+	argAudioType = arg_struct->audioType;
+	
+	
+	printf("Video PID: %d\n",argVideoPid);
+	printf("Video PID: %d\n",argAudioPid);
+
+	printf("Video Type: %d\n",argVideoType);
+	printf("Video Type: %d\n",argAudioType);
+
+
+	
     if (pthread_create(&scThread, NULL, &streamControllerTask, arg_struct))
     {
         printf("Error creating input event task!\n");
@@ -132,6 +161,8 @@ StreamControllerError getChannelInfo(ChannelInfo* channelInfo)
     return SC_NO_ERROR;
 }
 
+
+
 /* Sets filter to receive current channel PMT table
  * Parses current channel PMT table when it arrives
  * Creates streams with current channel audio and video pids
@@ -158,21 +189,57 @@ void startChannel(int32_t channelNumber)
 	}
 	pthread_mutex_unlock(&demuxMutex);
     
-    /* get audio and video pids */
+   
+ /* get audio and video pids */
     int16_t audioPid = -1;
-    int16_t videoPid = -1;
+    int16_t videoPid = -1;	
+    
     uint8_t i = 0;
+
+    
+
     for (i = 0; i < pmtTable->elementaryInfoCount; i++)
     {
         if (((pmtTable->pmtElementaryInfoArray[i].streamType == 0x1) || (pmtTable->pmtElementaryInfoArray[i].streamType == 0x2) || (pmtTable->pmtElementaryInfoArray[i].streamType == 0x1b))
             && (videoPid == -1))
         {
-            videoPid = pmtTable->pmtElementaryInfoArray[i].elementaryPid;
+		//cheking video pid and type
+		         
+	   videoPid = pmtTable->pmtElementaryInfoArray[i].elementaryPid;
+		printf("VIDEO PID from PMT: %d\n",videoPid);
+		printf("First video: %d\n",firstV);
+
+	   if(firstV == 0){
+		if(videoPid != argVideoPid){
+			printf("ERROR: Wrong video PID\n Pressed exit and try again with new video PID\n");
+			return SC_ERROR;
+		}
+		if(argVideoType!=42){
+			printf("ERROR: Wrong video TYPE\n Pressed exit and try again with new video TYPE\n");
+			return SC_ERROR;
+		}		
+	   }
+		firstV = 1;
         } 
         else if (((pmtTable->pmtElementaryInfoArray[i].streamType == 0x3) || (pmtTable->pmtElementaryInfoArray[i].streamType == 0x4))
             && (audioPid == -1))
         {
+   	    //cheking audio pid and type
             audioPid = pmtTable->pmtElementaryInfoArray[i].elementaryPid;
+            printf("AUDIO PID from PMT: %d\n",audioPid);
+	    printf("First audio: %d\n",firstA);
+
+	    if(firstA == 0){
+		if(audioPid != argAudioPid){
+			printf("ERROR: Wrong audio PID\nPressed exit and try again with new audio PID\n");
+			return SC_ERROR;
+		}
+		if(argAudioType!=10){
+			printf("ERROR: Wrong audio TYPE\n Pressed exit and try again with new video TYPE\n");
+			return SC_ERROR;
+		}
+	   }	
+		firstA = 1;
         }
     }
 
@@ -186,7 +253,7 @@ void startChannel(int32_t channelNumber)
         }
 
         /* create video stream */
-        if(Player_Stream_Create(playerHandle, sourceHandle, videoPid, VIDEO_TYPE_MPEG2, &streamHandleV))
+        if(Player_Stream_Create(playerHandle, sourceHandle, videoPid, argVideoType, &streamHandleV))
         {
             printf("\n%s : ERROR Cannot create video stream\n", __FUNCTION__);
             streamControllerDeinit();
@@ -212,7 +279,7 @@ void startChannel(int32_t channelNumber)
         }
 
 	    /* create audio stream */
-        if(Player_Stream_Create(playerHandle, sourceHandle, audioPid, AUDIO_TYPE_MPEG_AUDIO, &streamHandleA))
+        if(Player_Stream_Create(playerHandle, sourceHandle, audioPid, argAudioType, &streamHandleA))
         {
             printf("\n%s : ERROR Cannot create audio stream\n", __FUNCTION__);
             streamControllerDeinit();
@@ -336,7 +403,7 @@ void* streamControllerTask(argStruct* arg_struct)
     
     /* start current channel */
     startChannel(programNumber);
-    
+   
     /* set isInitialized flag */
     isInitialized = true;
 

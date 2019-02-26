@@ -29,6 +29,12 @@ typedef struct _agrStruct{
 	uint32_t bandwidth;
 	t_Module modul;
 
+	uint16_t audioPid;
+	uint16_t videoPid;
+	tStreamType videoType;
+	tStreamType audioType;
+
+	uint16_t programNumber;
 }argStruct;
 
 
