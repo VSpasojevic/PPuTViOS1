@@ -1,4 +1,4 @@
-#ifndef __RAMOTE_CONTROLLER_H__
+#ifndef __REMOTE_CONTROLLER_H__
 #define __REMOTE_CONTROLLER_H__
 
 #include <stdio.h>

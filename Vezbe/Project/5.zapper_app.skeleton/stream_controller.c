@@ -1,4 +1,23 @@
 #include "stream_controller.h"
+#include <directfb.h>
+#include <signal.h>
+#include <time.h>
+
+
+
+/* helper macro for error checking */
+#define DFBCHECK(x...)                                      \
+{                                                           \
+DFBResult err = x;                                          \
+                                                            \
+if (err != DFB_OK)                                          \
+  {                                                         \
+    fprintf( stderr, "%s <%d>:\n\t", __FILE__, __LINE__ );  \
+    DirectFBErrorFatal( #x, err );                          \
+  }                                                         \
+}
+
+
 
 static PatTable *patTable;
 static PmtTable *pmtTable;
@@ -28,6 +47,16 @@ tStreamType argAudioType;
 uint8_t firstV = 0;
 uint8_t firstA = 0;
 
+static timer_t timerId;
+static IDirectFBSurface *primary = NULL;
+IDirectFB *dfbInterface = NULL;
+static int32_t screenWidth = 0;
+static int32_t screenHeight = 0;
+
+
+
+static struct itimerspec timerSpec;
+static struct itimerspec timerSpecOld;
 
 static struct timespec lockStatusWaitTime;
 static struct timeval now;
@@ -39,16 +68,114 @@ static void* streamControllerTask(argStruct* arg_struct);
 static StreamControllerError startChannel(int32_t channelNumber);
 
 
+void wipeScreen(union sigval signalArg){
+    int32_t ret;
 
-//void graph();
+    /* clear screen */
+    DFBCHECK(primary->SetColor(primary, 0x00, 0x00, 0x00, 0xff));
+    DFBCHECK(primary->FillRectangle(primary, 0, 0, screenWidth, screenHeight));
+    
+    /* update screen */
+    DFBCHECK(primary->Flip(primary, NULL, 0));
+    
+    /* stop the timer */
+    memset(&timerSpec,0,sizeof(timerSpec));
+    ret = timer_settime(timerId,0,&timerSpec,&timerSpecOld);
+    if(ret == -1){
+        printf("Error setting timer in %s!\n", __FUNCTION__);
+    }
+}
+
+void graph(/*int16_t ch,int16_t videoPid,int16_t audioPid*/){
+
+	
+int32_t ret;
+    IDirectFBFont *fontInterface = NULL;
+    DFBFontDescription fontDesc;
+    char keycodeString[4];
+    
+    
+   
+    
+    /*  draw the frame */
+    
+    DFBCHECK(primary->SetColor(primary, 0x40, 0x10, 0x80, 0xff));
+    DFBCHECK(primary->FillRectangle(primary, 0, screenHeight*3/4, screenWidth, screenHeight));
+    
+    /*DFBCHECK(primary->SetColor(primary, 0x80, 0x40, 0x10, 0xff));
+    DFBCHECK(primary->FillRectangle(primary, screenWidth/3+50, screenHeight/3+30, screenWidth/3-2*FRAME_THICKNESS, screenHeight/3-2*FRAME_THICKNESS));
+    */
+    
+    /* draw keycode */
+    
+	fontDesc.flags = DFDESC_HEIGHT;
+	fontDesc.height = 50;
+	
+	DFBCHECK(dfbInterface->CreateFont(dfbInterface, "/home/galois/fonts/DejaVuSans.ttf", &fontDesc, &fontInterface));
+	DFBCHECK(primary->SetFont(primary, fontInterface));
+    
+    /* generate keycode string */
+    sprintf(keycodeString,"CH:3");
+    
+    /* draw the string */
+    DFBCHECK(primary->SetColor(primary, 0x10, 0x80, 0x40, 0xff));
+    DFBCHECK(primary->DrawString(primary, keycodeString, -1, 120, screenHeight*9/10 + 20, DSTF_CENTER));
+    
+     /* generate keycode string */
+    sprintf(keycodeString,"VIDEO PID:56");
+    
+    /* draw the string */
+    DFBCHECK(primary->SetColor(primary, 0x10, 0x80, 0x40, 0xff));
+    DFBCHECK(primary->DrawString(primary, keycodeString, -1, 120 + 400, screenHeight*9/10 + 20, DSTF_CENTER));
+    
+    /* generate keycode string */
+    sprintf(keycodeString,"AUDIO PID:156");
+    
+    /* draw the string */
+    DFBCHECK(primary->SetColor(primary, 0x10, 0x80, 0x40, 0xff));
+    DFBCHECK(primary->DrawString(primary, keycodeString, -1, 120 + 900, screenHeight*9/10 + 20, DSTF_CENTER));
+    
+	
+    /* update screen */
+    //DFBCHECK(primary->Flip(primary, NULL, 0));
+    
+    
+    /* set the timer for clearing the screen */
+    
+    memset(&timerSpec,0,sizeof(timerSpec));
+    
+    /* specify the timer timeout time */
+    timerSpec.it_value.tv_sec = 3;
+    timerSpec.it_value.tv_nsec = 0;
+    
+    /* set the new timer specs */
+    ret = timer_settime(timerId,0,&timerSpec,&timerSpecOld);
+    if(ret == -1){
+        printf("Error setting timer in %s!\n", __FUNCTION__);
+    }
+}
+
 
 
 StreamControllerError streamControllerInit(argStruct* arg_struct)
 {
-	
+	DFBSurfaceDescription surfaceDesc;
 
-	//init FB
+	/* initialize DirectFB */
+    
+	DFBCHECK(DirectFBInit(NULL, NULL));
+	DFBCHECK(DirectFBCreate(&dfbInterface));
+	DFBCHECK(dfbInterface->SetCooperativeLevel(dfbInterface, DFSCL_FULLSCREEN));
 	
+   	/* create primary surface with double buffering enabled */
+    
+	surfaceDesc.flags = DSDESC_CAPS;
+	surfaceDesc.caps = DSCAPS_PRIMARY | DSCAPS_FLIPPING;
+	DFBCHECK (dfbInterface->CreateSurface(dfbInterface, &surfaceDesc, &primary));
+    
+    
+    	/* fetch the screen size */
+   	DFBCHECK (primary->GetSize(primary, &screenWidth, &screenHeight));
 
 	//printf("Usao u stream controler INIT broj kanala za pocetak je %d\n",arg_struct->programNumber);
 	programNumber = arg_struct->programNumber - 1;
@@ -196,7 +323,7 @@ StreamControllerError startChannel(int32_t channelNumber)
     if(Demux_Set_Filter(playerHandle, patTable->patServiceInfoArray[channelNumber + 1].pid, 0x02, &filterHandle))
 	{
 		printf("\n%s : ERROR Demux_Set_Filter() fail\n", __FUNCTION__);
-        return;
+        return SC_ERROR;
 	}
     
     /* wait for a PMT table to be parsed*/
@@ -330,8 +457,10 @@ StreamControllerError startChannel(int32_t channelNumber)
             streamControllerDeinit();
         }
     }
-    
+    printf("CRTANJE\n");
 	//iscrtavanje info banera
+	graph();
+
 
     /* store current channel info */
     currentChannel.programNumber = channelNumber + 1;
@@ -448,6 +577,9 @@ void* streamControllerTask(argStruct* arg_struct)
 	}
 	pthread_mutex_unlock(&demuxMutex);
     
+
+	//graph();
+
     /* start current channel */
     startChannel(programNumber);
    
