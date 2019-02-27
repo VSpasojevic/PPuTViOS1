@@ -7,6 +7,10 @@ static pthread_t remote;
 static uint8_t threadExit = 0;
 static RemoteControllerCallback callback = NULL;
 
+
+
+
+
 RemoteControllerError remoteControllerInit()
 {
 
@@ -75,7 +79,6 @@ void* inputEventTask()
 			return (void*)RC_ERROR;
 		}
 
-		
 		/* filter input events */
         if(eventBuf.type == EV_KEY && 
           (eventBuf.value == EV_VALUE_KEYPRESS || eventBuf.value == EV_VALUE_AUTOREPEAT))

@@ -28,6 +28,7 @@ tStreamType argAudioType;
 uint8_t firstV = 0;
 uint8_t firstA = 0;
 
+
 static struct timespec lockStatusWaitTime;
 static struct timeval now;
 static pthread_t scThread;
@@ -35,14 +36,21 @@ static pthread_cond_t demuxCond = PTHREAD_COND_INITIALIZER;
 static pthread_mutex_t demuxMutex = PTHREAD_MUTEX_INITIALIZER;
 
 static void* streamControllerTask(argStruct* arg_struct);
-static void startChannel(int32_t channelNumber);
+static StreamControllerError startChannel(int32_t channelNumber);
+
+
+
+//void graph();
 
 
 StreamControllerError streamControllerInit(argStruct* arg_struct)
 {
 	
 
-	printf("Usao u stream controler INIT broj kanala za pocetak je %d\n",arg_struct->programNumber);
+	//init FB
+	
+
+	//printf("Usao u stream controler INIT broj kanala za pocetak je %d\n",arg_struct->programNumber);
 	programNumber = arg_struct->programNumber - 1;
 	
 	argVideoPid = arg_struct->videoPid;
@@ -52,12 +60,12 @@ StreamControllerError streamControllerInit(argStruct* arg_struct)
 	argAudioType = arg_struct->audioType;
 	
 	
-	printf("Video PID: %d\n",argVideoPid);
-	printf("Video PID: %d\n",argAudioPid);
+	/*printf("Video PID: %d\n",argVideoPid);
+	printf("Audio PID: %d\n",argAudioPid);
 
 	printf("Video Type: %d\n",argVideoType);
-	printf("Video Type: %d\n",argAudioType);
-
+	printf(" Type: %d\n",argAudioType);
+	*/
 
 	
     if (pthread_create(&scThread, NULL, &streamControllerTask, arg_struct))
@@ -129,6 +137,19 @@ StreamControllerError channelUp()
     return SC_NO_ERROR;
 }
 
+
+StreamControllerError channel(int16_t number)
+{   
+    
+        programNumber = number;
+    
+
+    /* set flag to start current channel */
+    changeChannel = true;
+
+    return SC_NO_ERROR;
+}
+
 StreamControllerError channelDown()
 {
     if (programNumber <= 0)
@@ -161,13 +182,11 @@ StreamControllerError getChannelInfo(ChannelInfo* channelInfo)
     return SC_NO_ERROR;
 }
 
-
-
 /* Sets filter to receive current channel PMT table
  * Parses current channel PMT table when it arrives
  * Creates streams with current channel audio and video pids
  */
-void startChannel(int32_t channelNumber)
+StreamControllerError startChannel(int32_t channelNumber)
 {
     
     /* free PAT table filter */
@@ -211,11 +230,23 @@ void startChannel(int32_t channelNumber)
 
 	   if(firstV == 0){
 		if(videoPid != argVideoPid){
-			printf("ERROR: Wrong video PID\n Pressed exit and try again with new video PID\n");
+			printf("ERROR: Wrong video PID\nPressed exit and try again with new video PID\n");
 			return SC_ERROR;
 		}
-		if(argVideoType!=42){
-			printf("ERROR: Wrong video TYPE\n Pressed exit and try again with new video TYPE\n");
+		if(argVideoType!=42 ){
+			if(argVideoType!=43){
+				if(argVideoType!=44){
+					if(argVideoType!=39){
+						printf("ERROR: Wrong video TYPE\nPressed exit and try again with new video TYPE\n");
+						return SC_ERROR;
+					}
+					printf("ERROR: Wrong video TYPE\nPressed exit and try again with new video TYPE\n");
+					return SC_ERROR;
+				}
+				printf("ERROR: Wrong video TYPE\nPressed exit and try again with new video TYPE\n");
+				return SC_ERROR;
+			}
+			printf("ERROR: Wrong video TYPE\nPressed exit and try again with new video TYPE\n");
 			return SC_ERROR;
 		}		
 	   }
@@ -234,10 +265,24 @@ void startChannel(int32_t channelNumber)
 			printf("ERROR: Wrong audio PID\nPressed exit and try again with new audio PID\n");
 			return SC_ERROR;
 		}
-		if(argAudioType!=10){
-			printf("ERROR: Wrong audio TYPE\n Pressed exit and try again with new video TYPE\n");
+		if(argAudioType!=10 /*|| argAudioType!=11 || argAudioType!=12 || argAudioType!=1*/){
+			if(argAudioType!=11 ){
+				if(argAudioType!=12){
+					if(argAudioType!=1){
+						printf("ERROR: Wrong audio TYPE\nPressed exit and try again with new video TYPE\n");
+						return SC_ERROR;
+					}
+
+					printf("ERROR: Wrong audio TYPE\nPressed exit and try again with new video TYPE\n");
+					return SC_ERROR;
+				}				
+				printf("ERROR: Wrong audio TYPE\nPressed exit and try again with new video TYPE\n");
+				return SC_ERROR;
+			}			
+			printf("ERROR: Wrong audio TYPE\nPressed exit and try again with new video TYPE\n");
 			return SC_ERROR;
 		}
+				
 	   }	
 		firstA = 1;
         }
@@ -286,6 +331,8 @@ void startChannel(int32_t channelNumber)
         }
     }
     
+	//iscrtavanje info banera
+
     /* store current channel info */
     currentChannel.programNumber = channelNumber + 1;
     currentChannel.audioPid = audioPid;

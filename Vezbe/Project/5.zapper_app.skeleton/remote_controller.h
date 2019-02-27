@@ -13,7 +13,17 @@
 #define KEYCODE_EXIT 102
 #define KEYCODE_P_PLUS 62
 #define KEYCODE_P_MINUS 61
+#define KEYCODE_VOLUME_PLUS 63
+#define KEYCODE_VOLUME_MINUS 64
 #define KEYCODE_INFO 358
+#define KEYCODE_CH1 2
+#define KEYCODE_CH2 3
+#define KEYCODE_CH3 4
+#define KEYCODE_CH4 5
+#define KEYCODE_CH5 6
+#define KEYCODE_CH6 7
+#define KEYCODE_CH7 8
+
 
 /* input event values for 'EV_KEY' type */
 #define EV_VALUE_RELEASE    0

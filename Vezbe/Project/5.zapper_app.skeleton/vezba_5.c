@@ -101,10 +101,33 @@ int main(int agrc,char** argv)
 			case 6:	if(strcmp(str,"VIDEO_TYPE_MPEG2") == 0){
 					confStruct->videoType = 42;
 				}
+				if(strcmp(str,"VIDEO_TYPE_H264") == 0){
+					confStruct->videoType = 39;
+				}
+				
+				if(strcmp(str,"VIDEO_TYPE_MPEG1") == 0){
+					confStruct->videoType = 43;
+				}
+				if(strcmp(str,"VIDEO_TYPE_MPEG4") == 0){
+					confStruct->videoType = 44;
+				}else{
+				printf("Bad video type\n");
+
+				}
+				
 				printf("Video type: %d\n",confStruct->videoType);
 				break;
 			case 7:	if(strcmp(str,"AUDIO_TYPE_MPEG_AUDIO") == 0){
 					confStruct->audioType = 10;
+				}
+				if(strcmp(str,"AUDIO_TYPE_MP3") == 0){
+					confStruct->audioType = 11;
+				}
+				if(strcmp(str,"AUDIO_TYPE_HE_AAC") == 0){
+					confStruct->audioType = 12;
+				}
+				if(strcmp(str,"AUDIO_TYPE_DOLBY_AC3") == 0){
+					confStruct->audioType = 1;
 				}
 				printf("Audio type: %d\n",confStruct->audioType);
 				break;
@@ -170,12 +193,48 @@ void remoteControllerCallback(uint16_t code, uint16_t type, uint32_t value)
 			break;
 		case KEYCODE_P_PLUS:
 			printf("\nCH+ pressed\n");
-            channelUp();
+            		channelUp();
 			break;
 		case KEYCODE_P_MINUS:
-		    printf("\nCH- pressed\n");
-            channelDown();
+		        printf("\nCH- pressed\n");
+            		channelDown();
 			break;
+		case KEYCODE_VOLUME_PLUS:
+		        printf("\nVOLUME+ pressed\n");
+            		//channelDown();
+			break;
+		case KEYCODE_VOLUME_MINUS:
+		        printf("\nVOLUME- pressed\n");
+            		//channelDown();
+			break;
+		case KEYCODE_CH1:
+		        printf("\nCH1 pressed\n");
+            		channel(0);
+			break;
+		case KEYCODE_CH2:
+		        printf("\nCH2 pressed\n");
+            		channel(1);
+			break;
+		case KEYCODE_CH3:
+		        printf("\nCH3 pressed\n");
+            		channel(KEYCODE_CH3 - 2);
+			break;
+		case KEYCODE_CH4:
+		        printf("\nCH4 pressed\n");
+            		channel(KEYCODE_CH4 - 2);
+			break;
+		case KEYCODE_CH5:
+		        printf("\nCH5 pressed\n");
+            		channel(KEYCODE_CH5 - 2);
+			break;
+		case KEYCODE_CH6:
+		        printf("\nCH6 pressed\n");
+            		channel(KEYCODE_CH6 - 2);
+			break;
+		case KEYCODE_CH7:
+		        printf("\nCH7 pressed\n");
+            		channel(KEYCODE_CH7 - 2);
+			break;		
 		case KEYCODE_EXIT:
 			printf("\nExit pressed\n");
             pthread_mutex_lock(&deinitMutex);
