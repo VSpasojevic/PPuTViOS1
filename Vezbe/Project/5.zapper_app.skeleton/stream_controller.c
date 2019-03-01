@@ -17,7 +17,7 @@ if (err != DFB_OK)                                          \
   }                                                         \
 }
 
-
+#define FONT_HEIGHT 40
 
 static PatTable *patTable;
 static PmtTable *pmtTable;
@@ -66,13 +66,13 @@ static pthread_mutex_t demuxMutex = PTHREAD_MUTEX_INITIALIZER;
 
 static void* streamControllerTask(argStruct* arg_struct);
 static StreamControllerError startChannel(int32_t channelNumber);
+static char keycodeString[10];
 
-
-void wipeScreen(union sigval signalArg){
+void wipeScreen(/*union sigval signalArg*/){
     int32_t ret;
 
     /* clear screen */
-    DFBCHECK(primary->SetColor(primary, 0x00, 0x00, 0x00, 0xff));
+    DFBCHECK(primary->SetColor(primary, 0x00, 0x00, 0x00, 0x00));
     DFBCHECK(primary->FillRectangle(primary, 0, 0, screenWidth, screenHeight));
     
     /* update screen */
@@ -86,98 +86,78 @@ void wipeScreen(union sigval signalArg){
     }
 }
 
-void graph(/*int16_t ch,int16_t videoPid,int16_t audioPid*/){
-
-	
-int32_t ret;
-    IDirectFBFont *fontInterface = NULL;
-    DFBFontDescription fontDesc;
-    char keycodeString[4];
-    
-    
-   
-    
-    /*  draw the frame */
-    
-    DFBCHECK(primary->SetColor(primary, 0x40, 0x10, 0x80, 0xff));
-    DFBCHECK(primary->FillRectangle(primary, 0, screenHeight*3/4, screenWidth, screenHeight));
-    
-    /*DFBCHECK(primary->SetColor(primary, 0x80, 0x40, 0x10, 0xff));
-    DFBCHECK(primary->FillRectangle(primary, screenWidth/3+50, screenHeight/3+30, screenWidth/3-2*FRAME_THICKNESS, screenHeight/3-2*FRAME_THICKNESS));
-    */
-    
-    /* draw keycode */
-    
-	fontDesc.flags = DFDESC_HEIGHT;
-	fontDesc.height = 50;
-	
-	DFBCHECK(dfbInterface->CreateFont(dfbInterface, "/home/galois/fonts/DejaVuSans.ttf", &fontDesc, &fontInterface));
-	DFBCHECK(primary->SetFont(primary, fontInterface));
-    
-    /* generate keycode string */
-    sprintf(keycodeString,"CH:3");
-    
-    /* draw the string */
-    DFBCHECK(primary->SetColor(primary, 0x10, 0x80, 0x40, 0xff));
-    DFBCHECK(primary->DrawString(primary, keycodeString, -1, 120, screenHeight*9/10 + 20, DSTF_CENTER));
-    
-     /* generate keycode string */
-    sprintf(keycodeString,"VIDEO PID:56");
-    
-    /* draw the string */
-    DFBCHECK(primary->SetColor(primary, 0x10, 0x80, 0x40, 0xff));
-    DFBCHECK(primary->DrawString(primary, keycodeString, -1, 120 + 400, screenHeight*9/10 + 20, DSTF_CENTER));
-    
-    /* generate keycode string */
-    sprintf(keycodeString,"AUDIO PID:156");
-    
-    /* draw the string */
-    DFBCHECK(primary->SetColor(primary, 0x10, 0x80, 0x40, 0xff));
-    DFBCHECK(primary->DrawString(primary, keycodeString, -1, 120 + 900, screenHeight*9/10 + 20, DSTF_CENTER));
-    
-	
-    /* update screen */
-    //DFBCHECK(primary->Flip(primary, NULL, 0));
-    
-    
-    /* set the timer for clearing the screen */
-    
-    memset(&timerSpec,0,sizeof(timerSpec));
-    
-    /* specify the timer timeout time */
-    timerSpec.it_value.tv_sec = 3;
-    timerSpec.it_value.tv_nsec = 0;
-    
-    /* set the new timer specs */
-    ret = timer_settime(timerId,0,&timerSpec,&timerSpecOld);
-    if(ret == -1){
-        printf("Error setting timer in %s!\n", __FUNCTION__);
-    }
-}
-
-
-
-StreamControllerError streamControllerInit(argStruct* arg_struct)
-{
+uint16_t initRb(){
 	DFBSurfaceDescription surfaceDesc;
+	DFBFontDescription fontDesc;
+	IDirectFBFont *fontInterface = NULL;
+	
 
+	/* structure for timer specification */
+        struct sigevent signalEvent;
+
+	int32_t ret;
+	
 	/* initialize DirectFB */
     
 	DFBCHECK(DirectFBInit(NULL, NULL));
 	DFBCHECK(DirectFBCreate(&dfbInterface));
 	DFBCHECK(dfbInterface->SetCooperativeLevel(dfbInterface, DFSCL_FULLSCREEN));
+	printf("\n/* initialize DirectFB */\n");
 	
-   	/* create primary surface with double buffering enabled */
+    	/* create primary surface with double buffering enabled */
     
 	surfaceDesc.flags = DSDESC_CAPS;
 	surfaceDesc.caps = DSCAPS_PRIMARY | DSCAPS_FLIPPING;
 	DFBCHECK (dfbInterface->CreateSurface(dfbInterface, &surfaceDesc, &primary));
+	printf("\n/* create primary surface with double buffering enabled */\n");
     
     
     	/* fetch the screen size */
-   	DFBCHECK (primary->GetSize(primary, &screenWidth, &screenHeight));
+    	DFBCHECK (primary->GetSize(primary, &screenWidth, &screenHeight));
+	printf("\n/* fetch the screen size */\n");
+	printf("\nSirina ekrana: %d, Visina ekrana: %d \n",screenWidth, screenHeight);
+    
+       	/* draw keycode */
+    
+	fontDesc.flags = DFDESC_HEIGHT;
+	fontDesc.height = FONT_HEIGHT;
+	
+	DFBCHECK(dfbInterface->CreateFont(dfbInterface, "/home/galois/fonts/DejaVuSans.ttf", &fontDesc, &fontInterface));
+	DFBCHECK(primary->SetFont(primary, fontInterface));
 
-	//printf("Usao u stream controler INIT broj kanala za pocetak je %d\n",arg_struct->programNumber);
+	/* create timer */
+    signalEvent.sigev_notify = SIGEV_THREAD; /* tell the OS to notify you about timer by calling the specified function */
+    signalEvent.sigev_notify_function = wipeScreen; /* function to be called when timer runs out */
+    signalEvent.sigev_value.sival_ptr = NULL; /* thread arguments */
+    signalEvent.sigev_notify_attributes = NULL; /* thread attributes (e.g. thread stack size) - if NULL default attributes are applied */
+    ret = timer_create(/*clock for time measuring*/CLOCK_REALTIME,
+                       /*timer settings*/&signalEvent,
+                       /*where to store the ID of the newly created timer*/&timerId);
+
+	printf("\n/* create timer */\n");
+
+
+    if(ret == -1){
+        printf("Error creating timer, abort!\n");
+        primary->Release(primary);
+        dfbInterface->Release(dfbInterface);
+        
+        return 0;
+    }
+
+}
+
+void deinitRB(){
+	timer_delete(timerId);
+	primary->Release(primary);
+	dfbInterface->Release(dfbInterface);
+	printf("\n/* clean up */\n");
+}
+
+
+StreamControllerError streamControllerInit(argStruct* arg_struct)
+{
+	
 	programNumber = arg_struct->programNumber - 1;
 	
 	argVideoPid = arg_struct->videoPid;
@@ -187,12 +167,7 @@ StreamControllerError streamControllerInit(argStruct* arg_struct)
 	argAudioType = arg_struct->audioType;
 	
 	
-	/*printf("Video PID: %d\n",argVideoPid);
-	printf("Audio PID: %d\n",argAudioPid);
-
-	printf("Video Type: %d\n",argVideoType);
-	printf(" Type: %d\n",argAudioType);
-	*/
+	initRb();
 
 	
     if (pthread_create(&scThread, NULL, &streamControllerTask, arg_struct))
@@ -243,6 +218,8 @@ StreamControllerError streamControllerDeinit()
     
     /* set isInitialized flag */
     isInitialized = false;
+
+    deinitRB();
 
     return SC_NO_ERROR;
 }
@@ -339,9 +316,9 @@ StreamControllerError startChannel(int32_t channelNumber)
  /* get audio and video pids */
     int16_t audioPid = -1;
     int16_t videoPid = -1;	
-    
+    int32_t ret;
     uint8_t i = 0;
-
+    bool txt = false;
     
 
     for (i = 0; i < pmtTable->elementaryInfoCount; i++)
@@ -413,7 +390,12 @@ StreamControllerError startChannel(int32_t channelNumber)
 	   }	
 		firstA = 1;
         }
-    }
+    } 
+    //check teletext
+    if(pmtTable->pmtElementaryInfoArray[i].streamType == 0x06)
+	{
+		txt = true;
+	}
 
     if (videoPid != -1) 
     {
@@ -459,8 +441,85 @@ StreamControllerError startChannel(int32_t channelNumber)
     }
     printf("CRTANJE\n");
 	//iscrtavanje info banera
-	graph();
+	
+    sleep(3);
+	
+	DFBCHECK(primary->SetColor(primary, 0x00, 0x10, 0x80, 0x55));
+	DFBCHECK(primary->FillRectangle(primary, 0, screenHeight*5/6, screenWidth, screenHeight/6));
+	printf("\n\n!!!!ISCRTAVANJE!!!\n\n");
 
+	/*-----------------------------------------------------------------------------------*/
+	/* generate keycode string for channel*/
+	sprintf(keycodeString,"%s","CH: ");
+
+	DFBCHECK(primary->SetColor(primary, 0xff, 0xff, 0xff, 0xff));
+	DFBCHECK(primary->DrawString(primary, keycodeString, -1, screenWidth/16, screenHeight*11/12, DSTF_CENTER));
+
+
+	/* generate keycode string for chnannel number */
+	sprintf(keycodeString,"%d",(channelNumber + 1));
+
+	DFBCHECK(primary->SetColor(primary, 0xff, 0xff, 0xff, 0xff));
+	DFBCHECK(primary->DrawString(primary, keycodeString, -1, screenWidth/16+50, screenHeight*11/12, DSTF_CENTER));
+
+	/* generate keycode string for AudioPid*/ //problematika?????????????????????
+	sprintf(keycodeString,"%s","AudioPID: ");
+
+	DFBCHECK(primary->SetColor(primary, 0xff, 0xff, 0xff, 0xff));
+	DFBCHECK(primary->DrawString(primary, keycodeString, -1, screenWidth/6, screenHeight*11/12, DSTF_CENTER));
+
+	
+	/* generate keycode string for AudioPid number */
+	sprintf(keycodeString,"%d", audioPid);
+
+	DFBCHECK(primary->SetColor(primary, 0xff, 0xff, 0xff, 0xff));
+	DFBCHECK(primary->DrawString(primary, keycodeString, -1, screenWidth/6+140, screenHeight*11/12, DSTF_CENTER));	
+
+	/* generate keycode string for VideoPid*/
+	sprintf(keycodeString,"%s","VideoPID: ");
+
+	DFBCHECK(primary->SetColor(primary, 0xff, 0xff, 0xff, 0xff));
+	DFBCHECK(primary->DrawString(primary, keycodeString, -1, screenWidth/3, screenHeight*11/12, DSTF_CENTER));
+
+	/* generate keycode string for VideoPid number */
+	sprintf(keycodeString,"%d", videoPid);
+
+	DFBCHECK(primary->SetColor(primary, 0xff, 0xff, 0xff, 0xff));
+	DFBCHECK(primary->DrawString(primary, keycodeString, -1, screenWidth/3+140, screenHeight*11/12, DSTF_CENTER));
+
+	/* generate keycode string for Teletext*/
+	sprintf(keycodeString,"%s","Teletext: ");
+
+	DFBCHECK(primary->SetColor(primary, 0xff, 0xff, 0xff, 0xff));
+	DFBCHECK(primary->DrawString(primary, keycodeString, -1, screenWidth/2, screenHeight*11/12, DSTF_CENTER));
+	if(txt == true)
+	{
+		DFBCHECK(primary->SetColor(primary, 0xff, 0xff, 0xff, 0xff));
+		DFBCHECK(primary->DrawString(primary, "YES", -1, screenWidth/2+120, screenHeight*11/12, DSTF_CENTER));
+	}
+	else
+	{
+		DFBCHECK(primary->SetColor(primary, 0xff, 0xff, 0xff, 0xff));
+		DFBCHECK(primary->DrawString(primary, "NO", -1, screenWidth/2+120, screenHeight*11/12, DSTF_CENTER));
+	}	
+
+	/* update screen */ 
+	DFBCHECK(primary->Flip(primary, NULL, 0));
+	printf("\n\n!!!!IZMENA EKRANA!!!\n\n");   
+    
+    	/* set the timer for clearing the screen */
+    
+    	memset(&timerSpec,0,sizeof(timerSpec));
+    
+    	/* specify the timer timeout time */
+    	timerSpec.it_value.tv_sec = 5;
+    	timerSpec.it_value.tv_nsec = 0;
+    
+    	/* set the new timer specs */
+    	ret = timer_settime(timerId,0,&timerSpec,&timerSpecOld);
+    	if(ret == -1){
+        	printf("Error setting timer in %s!\n", __FUNCTION__);
+    	}
 
     /* store current channel info */
     currentChannel.programNumber = channelNumber + 1;
