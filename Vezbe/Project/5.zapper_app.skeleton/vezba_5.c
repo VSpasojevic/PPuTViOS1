@@ -181,7 +181,8 @@ void remoteControllerCallback(uint16_t code, uint16_t type, uint32_t value)
     switch(code)
 	{
 		case KEYCODE_INFO:
-            printf("\nInfo pressed\n");          
+            printf("\nInfo pressed\n");     
+		info();     
             if (getChannelInfo(&channelInfo) == SC_NO_ERROR)
             {
                 printf("\n********************* Channel info *********************\n");
@@ -209,11 +210,11 @@ void remoteControllerCallback(uint16_t code, uint16_t type, uint32_t value)
 			break;
 		case KEYCODE_CH1:
 		        printf("\nCH1 pressed\n");
-            		channel(0);
+            		channel(KEYCODE_CH1 - 2);
 			break;
 		case KEYCODE_CH2:
 		        printf("\nCH2 pressed\n");
-            		channel(1);
+            		channel(KEYCODE_CH2 - 2);
 			break;
 		case KEYCODE_CH3:
 		        printf("\nCH3 pressed\n");
@@ -242,7 +243,7 @@ void remoteControllerCallback(uint16_t code, uint16_t type, uint32_t value)
 		    pthread_mutex_unlock(&deinitMutex);
 			break;
 		default:
-			printf("\nPress P+, P-, info or exit! \n\n");
+			printf("\nPress P+, P-,CH1,CH2,CH3,CH4,CH5,CH6,CH7, info or exit! \n\n");
 	}
 }
 

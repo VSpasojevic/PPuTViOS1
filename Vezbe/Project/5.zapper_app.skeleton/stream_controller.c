@@ -53,7 +53,10 @@ IDirectFB *dfbInterface = NULL;
 static int32_t screenWidth = 0;
 static int32_t screenHeight = 0;
 
+static DFBRegion programInfoBannerRegion;
 
+bool txt = false;
+int32_t ret;
 
 static struct itimerspec timerSpec;
 static struct itimerspec timerSpecOld;
@@ -61,6 +64,8 @@ static struct itimerspec timerSpecOld;
 static struct timespec lockStatusWaitTime;
 static struct timeval now;
 static pthread_t scThread;
+static pthread_t drawThread;
+
 static pthread_cond_t demuxCond = PTHREAD_COND_INITIALIZER;
 static pthread_mutex_t demuxMutex = PTHREAD_MUTEX_INITIALIZER;
 
@@ -68,28 +73,72 @@ static void* streamControllerTask(argStruct* arg_struct);
 static StreamControllerError startChannel(int32_t channelNumber);
 static char keycodeString[10];
 
+
 void wipeScreen(/*union sigval signalArg*/){
     int32_t ret;
 
-    /* clear screen */
-    DFBCHECK(primary->SetColor(primary, 0x00, 0x00, 0x00, 0x00));
-    DFBCHECK(primary->FillRectangle(primary, 0, 0, screenWidth, screenHeight));
-    
-    /* update screen */
-    DFBCHECK(primary->Flip(primary, NULL, 0));
-    
-    /* stop the timer */
-    memset(&timerSpec,0,sizeof(timerSpec));
-    ret = timer_settime(timerId,0,&timerSpec,&timerSpecOld);
-    if(ret == -1){
-        printf("Error setting timer in %s!\n", __FUNCTION__);
+    if(currentChannel.videoPid == -1){
+	printf("VIDEO PID -1 u WIPE\n");
+	    /* clear screen */
+	    DFBCHECK(primary->SetColor(primary, 0x00, 0x00, 0x00, 0xff));
+	    DFBCHECK(primary->FillRectangle(primary, 0, screenHeight*5/6, screenWidth, screenHeight/6));
+
+	    /* generate keycode string for channel*/
+		/*sprintf(keycodeString,"%s","RADIO ");
+
+	DFBCHECK(primary->SetColor(primary, 0xff, 0xff, 0xff, 0x55));
+	DFBCHECK(primary->DrawString(primary, keycodeString, -1, screenWidth/3, screenHeight/6, DSTF_CENTER));
+*/
+	programInfoBannerRegion.x1 = 0;
+	programInfoBannerRegion.y1 = screenHeight*5/6; 
+	programInfoBannerRegion.x2 = screenWidth;
+	programInfoBannerRegion.y2 = screenHeight;
+
+	    /* update screen */
+	    DFBCHECK(primary->Flip(primary, &programInfoBannerRegion, 0));
+	    
+	    /* stop the timer */
+	    memset(&timerSpec,0,sizeof(timerSpec));
+	    ret = timer_settime(timerId,0,&timerSpec,&timerSpecOld);
+	    if(ret == -1){
+		printf("Error setting timer in %s!\n", __FUNCTION__);
+	    }
+
     }
+    else{
+	    /* clear screen */
+	    DFBCHECK(primary->SetColor(primary, 0x00, 0x00, 0x00, 0x00));
+	    DFBCHECK(primary->FillRectangle(primary, 0, screenHeight*5/6, screenWidth, screenHeight/6));
+	    
+
+
+	programInfoBannerRegion.x1 = 0;
+	programInfoBannerRegion.y1 = screenHeight*5/6; 
+	programInfoBannerRegion.x2 = screenWidth;
+	programInfoBannerRegion.y2 = screenHeight;
+
+	    /* update screen */
+	    DFBCHECK(primary->Flip(primary, &programInfoBannerRegion, 0));
+	    
+	    /* stop the timer */
+	    memset(&timerSpec,0,sizeof(timerSpec));
+	    ret = timer_settime(timerId,0,&timerSpec,&timerSpecOld);
+	    if(ret == -1){
+		printf("Error setting timer in %s!\n", __FUNCTION__);
+	    }
+	}
 }
+
+
+
 
 uint16_t initRb(){
 	DFBSurfaceDescription surfaceDesc;
 	DFBFontDescription fontDesc;
 	IDirectFBFont *fontInterface = NULL;
+	//0, screenHeight*5/6, screenWidth, screenHeight/6
+
+	
 	
 
 	/* structure for timer specification */
@@ -135,6 +184,7 @@ uint16_t initRb(){
                        /*where to store the ID of the newly created timer*/&timerId);
 
 	printf("\n/* create timer */\n");
+	
 
 
     if(ret == -1){
@@ -153,6 +203,189 @@ void deinitRB(){
 	dfbInterface->Release(dfbInterface);
 	printf("\n/* clean up */\n");
 }
+
+
+
+
+
+void* drawingBanner(){
+
+	if(currentChannel.videoPid == -1){
+	printf("\n\n!!!!RADIO!!!\n\n");
+
+	 /* clear screen */
+   	 DFBCHECK(primary->SetColor(primary, 0x00, 0x00, 0x00, 0xff));
+    	 DFBCHECK(primary->FillRectangle(primary, 0, 0, screenWidth, screenHeight));
+
+	/* generate keycode string for channel*/
+	sprintf(keycodeString,"%s","RADIO ");
+
+	DFBCHECK(primary->SetColor(primary, 0xff, 0xff, 0xff, 0x55));
+	DFBCHECK(primary->DrawString(primary, keycodeString, -1, screenWidth/3, screenHeight/6, DSTF_CENTER));
+
+
+	DFBCHECK(primary->SetColor(primary, 0x00, 0x10, 0x80, 0xff));
+	DFBCHECK(primary->FillRectangle(primary, 0, screenHeight*5/6, screenWidth, screenHeight/6));
+	
+
+	/* generate keycode string for channel*/
+	sprintf(keycodeString,"%s","CH: ");
+
+	DFBCHECK(primary->SetColor(primary, 0xff, 0xff, 0xff, 0xff));
+	DFBCHECK(primary->DrawString(primary, keycodeString, -1, screenWidth/16, screenHeight*11/12, DSTF_CENTER));
+
+
+	/* generate keycode string for chnannel number */
+	sprintf(keycodeString,"%d",(currentChannel.programNumber));
+
+	DFBCHECK(primary->SetColor(primary, 0xff, 0xff, 0xff, 0xff));
+	DFBCHECK(primary->DrawString(primary, keycodeString, -1, screenWidth/16+50, screenHeight*11/12, DSTF_CENTER));
+
+	/* generate keycode string for AudioPid*/ 
+	sprintf(keycodeString,"%s","AudioPID: ");
+
+	DFBCHECK(primary->SetColor(primary, 0xff, 0xff, 0xff, 0xff));
+	DFBCHECK(primary->DrawString(primary, keycodeString, -1, screenWidth/6, screenHeight*11/12, DSTF_CENTER));
+
+	
+	/* generate keycode string for AudioPid number */
+	sprintf(keycodeString,"%d", currentChannel.audioPid);
+
+	DFBCHECK(primary->SetColor(primary, 0xff, 0xff, 0xff, 0xff));
+	DFBCHECK(primary->DrawString(primary, keycodeString, -1, screenWidth/6+140, screenHeight*11/12, DSTF_CENTER));	
+
+	/* generate keycode string for VideoPid*/
+	sprintf(keycodeString,"%s","VideoPID: ");
+
+	DFBCHECK(primary->SetColor(primary, 0xff, 0xff, 0xff, 0xff));
+	DFBCHECK(primary->DrawString(primary, keycodeString, -1, screenWidth/3, screenHeight*11/12, DSTF_CENTER));
+
+	/* generate keycode string for VideoPid number */
+	sprintf(keycodeString,"%d", currentChannel.videoPid);
+
+	DFBCHECK(primary->SetColor(primary, 0xff, 0xff, 0xff, 0xff));
+	DFBCHECK(primary->DrawString(primary, keycodeString, -1, screenWidth/3+140, screenHeight*11/12, DSTF_CENTER));
+
+	/* generate keycode string for Teletext*/
+	sprintf(keycodeString,"%s","Teletext: ");
+
+	DFBCHECK(primary->SetColor(primary, 0xff, 0xff, 0xff, 0xff));
+	DFBCHECK(primary->DrawString(primary, keycodeString, -1, screenWidth/2, screenHeight*11/12, DSTF_CENTER));
+	if(txt == true)
+	{
+		DFBCHECK(primary->SetColor(primary, 0xff, 0xff, 0xff, 0xff));
+		DFBCHECK(primary->DrawString(primary, "YES", -1, screenWidth/2+120, screenHeight*11/12, DSTF_CENTER));
+	}
+	else
+	{
+		DFBCHECK(primary->SetColor(primary, 0xff, 0xff, 0xff, 0xff));
+		DFBCHECK(primary->DrawString(primary, "NO", -1, screenWidth/2+120, screenHeight*11/12, DSTF_CENTER));
+	}	
+
+
+	
+    
+	 /* update screen */
+    	 DFBCHECK(primary->Flip(primary, NULL, 0));
+
+	
+	/* set the timer for clearing the screen */
+    
+    	memset(&timerSpec,0,sizeof(timerSpec));
+    
+    	/* specify the timer timeout time */
+    	timerSpec.it_value.tv_sec = 3;
+    	timerSpec.it_value.tv_nsec = 0;
+    
+    	/* set the new timer specs */
+    	ret = timer_settime(timerId,0,&timerSpec,&timerSpecOld);
+    	if(ret == -1){
+        	printf("Error setting timer in %s!\n", __FUNCTION__);
+    	}
+	
+
+	}else{
+	
+	DFBCHECK(primary->SetColor(primary, 0x00, 0x10, 0x80, 0xff));
+	DFBCHECK(primary->FillRectangle(primary, 0, screenHeight*5/6, screenWidth, screenHeight/6));
+	printf("\n\n!!!!ISCRTAVANJE!!!\n\n");
+
+	/*-----------------------------------------------------------------------------------*/
+	/* generate keycode string for channel*/
+	sprintf(keycodeString,"%s","CH: ");
+
+	DFBCHECK(primary->SetColor(primary, 0xff, 0xff, 0xff, 0xff));
+	DFBCHECK(primary->DrawString(primary, keycodeString, -1, screenWidth/16, screenHeight*11/12, DSTF_CENTER));
+
+
+	/* generate keycode string for chnannel number */
+	sprintf(keycodeString,"%d",(currentChannel.programNumber));
+
+	DFBCHECK(primary->SetColor(primary, 0xff, 0xff, 0xff, 0xff));
+	DFBCHECK(primary->DrawString(primary, keycodeString, -1, screenWidth/16+50, screenHeight*11/12, DSTF_CENTER));
+
+	/* generate keycode string for AudioPid*/ 
+	sprintf(keycodeString,"%s","AudioPID: ");
+
+	DFBCHECK(primary->SetColor(primary, 0xff, 0xff, 0xff, 0xff));
+	DFBCHECK(primary->DrawString(primary, keycodeString, -1, screenWidth/6, screenHeight*11/12, DSTF_CENTER));
+
+	
+	/* generate keycode string for AudioPid number */
+	sprintf(keycodeString,"%d", currentChannel.audioPid);
+
+	DFBCHECK(primary->SetColor(primary, 0xff, 0xff, 0xff, 0xff));
+	DFBCHECK(primary->DrawString(primary, keycodeString, -1, screenWidth/6+140, screenHeight*11/12, DSTF_CENTER));	
+
+	/* generate keycode string for VideoPid*/
+	sprintf(keycodeString,"%s","VideoPID: ");
+
+	DFBCHECK(primary->SetColor(primary, 0xff, 0xff, 0xff, 0xff));
+	DFBCHECK(primary->DrawString(primary, keycodeString, -1, screenWidth/3, screenHeight*11/12, DSTF_CENTER));
+
+	/* generate keycode string for VideoPid number */
+	sprintf(keycodeString,"%d", currentChannel.videoPid);
+
+	DFBCHECK(primary->SetColor(primary, 0xff, 0xff, 0xff, 0xff));
+	DFBCHECK(primary->DrawString(primary, keycodeString, -1, screenWidth/3+140, screenHeight*11/12, DSTF_CENTER));
+
+	/* generate keycode string for Teletext*/
+	sprintf(keycodeString,"%s","Teletext: ");
+
+	DFBCHECK(primary->SetColor(primary, 0xff, 0xff, 0xff, 0xff));
+	DFBCHECK(primary->DrawString(primary, keycodeString, -1, screenWidth/2, screenHeight*11/12, DSTF_CENTER));
+	if(txt == true)
+	{
+		DFBCHECK(primary->SetColor(primary, 0xff, 0xff, 0xff, 0xff));
+		DFBCHECK(primary->DrawString(primary, "YES", -1, screenWidth/2+120, screenHeight*11/12, DSTF_CENTER));
+	}
+	else
+	{
+		DFBCHECK(primary->SetColor(primary, 0xff, 0xff, 0xff, 0xff));
+		DFBCHECK(primary->DrawString(primary, "NO", -1, screenWidth/2+120, screenHeight*11/12, DSTF_CENTER));
+	}	
+
+	/* update screen */ 
+	DFBCHECK(primary->Flip(primary, NULL, 0));
+	//printf("\n\n!!!!IZMENA EKRANA!!!\n\n");   
+    
+    	/* set the timer for clearing the screen */
+    
+    	memset(&timerSpec,0,sizeof(timerSpec));
+    
+    	/* specify the timer timeout time */
+    	timerSpec.it_value.tv_sec = 3;
+    	timerSpec.it_value.tv_nsec = 0;
+    
+    	/* set the new timer specs */
+    	ret = timer_settime(timerId,0,&timerSpec,&timerSpecOld);
+    	if(ret == -1){
+        	printf("Error setting timer in %s!\n", __FUNCTION__);
+    	}
+
+	}
+
+} 
 
 
 StreamControllerError streamControllerInit(argStruct* arg_struct)
@@ -220,6 +453,21 @@ StreamControllerError streamControllerDeinit()
     isInitialized = false;
 
     deinitRB();
+
+    return SC_NO_ERROR;
+}
+
+StreamControllerError info()
+{   
+    int check;
+    check = timer_gettime(timerId, &timerSpec);
+	
+    if(timerSpec.it_interval.tv_sec != 0 && timerSpec.it_interval.tv_sec < 3){
+	timerSpec.it_interval.tv_sec = 0;
+    }
+    drawingBanner();	
+    
+	
 
     return SC_NO_ERROR;
 }
@@ -316,9 +564,9 @@ StreamControllerError startChannel(int32_t channelNumber)
  /* get audio and video pids */
     int16_t audioPid = -1;
     int16_t videoPid = -1;	
-    int32_t ret;
+    
     uint8_t i = 0;
-    bool txt = false;
+    
     
 
     for (i = 0; i < pmtTable->elementaryInfoCount; i++)
@@ -440,91 +688,21 @@ StreamControllerError startChannel(int32_t channelNumber)
         }
     }
     printf("CRTANJE\n");
-	//iscrtavanje info banera
-	
-    sleep(3);
-	
-	DFBCHECK(primary->SetColor(primary, 0x00, 0x10, 0x80, 0x55));
-	DFBCHECK(primary->FillRectangle(primary, 0, screenHeight*5/6, screenWidth, screenHeight/6));
-	printf("\n\n!!!!ISCRTAVANJE!!!\n\n");
-
-	/*-----------------------------------------------------------------------------------*/
-	/* generate keycode string for channel*/
-	sprintf(keycodeString,"%s","CH: ");
-
-	DFBCHECK(primary->SetColor(primary, 0xff, 0xff, 0xff, 0xff));
-	DFBCHECK(primary->DrawString(primary, keycodeString, -1, screenWidth/16, screenHeight*11/12, DSTF_CENTER));
-
-
-	/* generate keycode string for chnannel number */
-	sprintf(keycodeString,"%d",(channelNumber + 1));
-
-	DFBCHECK(primary->SetColor(primary, 0xff, 0xff, 0xff, 0xff));
-	DFBCHECK(primary->DrawString(primary, keycodeString, -1, screenWidth/16+50, screenHeight*11/12, DSTF_CENTER));
-
-	/* generate keycode string for AudioPid*/ //problematika?????????????????????
-	sprintf(keycodeString,"%s","AudioPID: ");
-
-	DFBCHECK(primary->SetColor(primary, 0xff, 0xff, 0xff, 0xff));
-	DFBCHECK(primary->DrawString(primary, keycodeString, -1, screenWidth/6, screenHeight*11/12, DSTF_CENTER));
-
-	
-	/* generate keycode string for AudioPid number */
-	sprintf(keycodeString,"%d", audioPid);
-
-	DFBCHECK(primary->SetColor(primary, 0xff, 0xff, 0xff, 0xff));
-	DFBCHECK(primary->DrawString(primary, keycodeString, -1, screenWidth/6+140, screenHeight*11/12, DSTF_CENTER));	
-
-	/* generate keycode string for VideoPid*/
-	sprintf(keycodeString,"%s","VideoPID: ");
-
-	DFBCHECK(primary->SetColor(primary, 0xff, 0xff, 0xff, 0xff));
-	DFBCHECK(primary->DrawString(primary, keycodeString, -1, screenWidth/3, screenHeight*11/12, DSTF_CENTER));
-
-	/* generate keycode string for VideoPid number */
-	sprintf(keycodeString,"%d", videoPid);
-
-	DFBCHECK(primary->SetColor(primary, 0xff, 0xff, 0xff, 0xff));
-	DFBCHECK(primary->DrawString(primary, keycodeString, -1, screenWidth/3+140, screenHeight*11/12, DSTF_CENTER));
-
-	/* generate keycode string for Teletext*/
-	sprintf(keycodeString,"%s","Teletext: ");
-
-	DFBCHECK(primary->SetColor(primary, 0xff, 0xff, 0xff, 0xff));
-	DFBCHECK(primary->DrawString(primary, keycodeString, -1, screenWidth/2, screenHeight*11/12, DSTF_CENTER));
-	if(txt == true)
-	{
-		DFBCHECK(primary->SetColor(primary, 0xff, 0xff, 0xff, 0xff));
-		DFBCHECK(primary->DrawString(primary, "YES", -1, screenWidth/2+120, screenHeight*11/12, DSTF_CENTER));
-	}
-	else
-	{
-		DFBCHECK(primary->SetColor(primary, 0xff, 0xff, 0xff, 0xff));
-		DFBCHECK(primary->DrawString(primary, "NO", -1, screenWidth/2+120, screenHeight*11/12, DSTF_CENTER));
-	}	
-
-	/* update screen */ 
-	DFBCHECK(primary->Flip(primary, NULL, 0));
-	printf("\n\n!!!!IZMENA EKRANA!!!\n\n");   
+	//drawing info baner
+	sleep(3);
     
-    	/* set the timer for clearing the screen */
-    
-    	memset(&timerSpec,0,sizeof(timerSpec));
-    
-    	/* specify the timer timeout time */
-    	timerSpec.it_value.tv_sec = 5;
-    	timerSpec.it_value.tv_nsec = 0;
-    
-    	/* set the new timer specs */
-    	ret = timer_settime(timerId,0,&timerSpec,&timerSpecOld);
-    	if(ret == -1){
-        	printf("Error setting timer in %s!\n", __FUNCTION__);
-    	}
-
     /* store current channel info */
     currentChannel.programNumber = channelNumber + 1;
     currentChannel.audioPid = audioPid;
     currentChannel.videoPid = videoPid;
+
+	//pokretanje niti
+    if (pthread_create(&drawThread, NULL, &drawingBanner, NULL))
+    {
+        printf("Error creating info banner!\n");
+        return SC_THREAD_ERROR;
+    }
+
 }
 
 void* streamControllerTask(argStruct* arg_struct)
