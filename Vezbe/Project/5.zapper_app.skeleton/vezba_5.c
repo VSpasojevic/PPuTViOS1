@@ -202,11 +202,11 @@ void remoteControllerCallback(uint16_t code, uint16_t type, uint32_t value)
 			break;
 		case KEYCODE_VOLUME_PLUS:
 		        printf("\nVOLUME+ pressed\n");
-            		//channelDown();
+            		volumeUp();
 			break;
 		case KEYCODE_VOLUME_MINUS:
 		        printf("\nVOLUME- pressed\n");
-            		//channelDown();
+            		volumeDown();
 			break;
 		case KEYCODE_CH1:
 		        printf("\nCH1 pressed\n");

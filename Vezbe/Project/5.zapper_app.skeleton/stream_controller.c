@@ -58,6 +58,10 @@ static DFBRegion programInfoBannerRegion;
 bool txt = false;
 int32_t ret;
 
+
+static uint32_t volumeNumber = 0;
+
+
 static struct itimerspec timerSpec;
 static struct itimerspec timerSpecOld;
 
@@ -457,6 +461,35 @@ StreamControllerError streamControllerDeinit()
     return SC_NO_ERROR;
 }
 
+
+StreamControllerError volumeUp()
+{   
+	Player_Volume_Get(playerHandle,&volumeNumber);
+	printf("VOL: %d",volumeNumber);
+
+	//1073741824
+	Player_Volume_Set(playerHandle,volumeNumber + (1073741824/10));
+	printf("VOL: %d",volumeNumber);
+	
+
+
+    
+    return SC_NO_ERROR;
+}
+
+StreamControllerError volumeDown()
+{   
+	Player_Volume_Get(playerHandle,&volumeNumber);
+	printf("VOL: %d",volumeNumber);	
+
+	//Player_Volume_Set(playerHandle,volumeNumber - (1073741824/10));
+	Player_Volume_Set(playerHandle,0);	
+	printf("VOL: %d",volumeNumber);
+	
+
+    return SC_NO_ERROR;
+}
+
 StreamControllerError info()
 {   
     int check;
@@ -465,6 +498,7 @@ StreamControllerError info()
     if(timerSpec.it_interval.tv_sec != 0 && timerSpec.it_interval.tv_sec < 3){
 	timerSpec.it_interval.tv_sec = 0;
     }
+    
     drawingBanner();	
     
 	
