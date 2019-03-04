@@ -236,6 +236,10 @@ void remoteControllerCallback(uint16_t code, uint16_t type, uint32_t value)
 		        printf("\nCH7 pressed\n");
             		channel(KEYCODE_CH7 - 2);
 			break;		
+		case KEYCODE_MUTE:
+		        printf("\nMUTE pressed\n");
+            		mute();
+			break;
 		case KEYCODE_EXIT:
 			printf("\nExit pressed\n");
             pthread_mutex_lock(&deinitMutex);

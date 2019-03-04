@@ -48,12 +48,15 @@ uint8_t firstV = 0;
 uint8_t firstA = 0;
 
 static timer_t timerId;
+static timer_t timerVolId;
+
 static IDirectFBSurface *primary = NULL;
 IDirectFB *dfbInterface = NULL;
 static int32_t screenWidth = 0;
 static int32_t screenHeight = 0;
 
 static DFBRegion programInfoBannerRegion;
+static DFBRegion programVolumeRegion;
 
 bool txt = false;
 int32_t ret;
@@ -65,10 +68,14 @@ static uint32_t volumeNumber = 0;
 static struct itimerspec timerSpec;
 static struct itimerspec timerSpecOld;
 
+static struct itimerspec timerSpecVol;
+static struct itimerspec timerSpecOldVol;
+
 static struct timespec lockStatusWaitTime;
 static struct timeval now;
 static pthread_t scThread;
 static pthread_t drawThread;
+static pthread_t drawVolThread;
 
 static pthread_cond_t demuxCond = PTHREAD_COND_INITIALIZER;
 static pthread_mutex_t demuxMutex = PTHREAD_MUTEX_INITIALIZER;
@@ -76,6 +83,72 @@ static pthread_mutex_t demuxMutex = PTHREAD_MUTEX_INITIALIZER;
 static void* streamControllerTask(argStruct* arg_struct);
 static StreamControllerError startChannel(int32_t channelNumber);
 static char keycodeString[10];
+
+
+
+void wipeVolScreen(){
+
+
+	if(currentChannel.videoPid == -1){
+
+	 /* clear screen */
+   	 DFBCHECK(primary->SetColor(primary, 0x00, 0x00, 0x00, 0x00));
+    	 DFBCHECK(primary->FillRectangle(primary, 0, 0, screenWidth, screenHeight));
+
+
+	//set for region
+	    DFBCHECK(primary->SetColor(primary, 0x00, 0x00, 0x00, 0xff));
+	    DFBCHECK(primary->FillRectangle(primary, screenWidth/10, screenHeight/10, screenWidth/10 + 200, screenHeight/10 +200));
+	    
+
+
+	programVolumeRegion.x1 = screenWidth/10;
+	programVolumeRegion.y1 = screenHeight/10; 
+	programVolumeRegion.x2 = screenWidth/10 + 200;
+	programVolumeRegion.y2 = screenHeight/10 + 200;
+
+	    /* update screen */
+	    DFBCHECK(primary->Flip(primary, &programVolumeRegion, 0));
+	    
+	    /* stop the timer */
+	    memset(&timerSpecVol,0,sizeof(timerSpecVol));
+	    ret = timer_settime(timerVolId,0,&timerSpecVol,&timerSpecOldVol);
+	    if(ret == -1){
+		printf("Error setting timer in %s!\n", __FUNCTION__);
+	    }
+
+
+	printf("RADIO WIPE VOL\n");
+
+
+
+	}else{
+
+ 	/* clear screen */
+	//set for region
+	    DFBCHECK(primary->SetColor(primary, 0x00, 0x00, 0x00, 0x00));
+	    DFBCHECK(primary->FillRectangle(primary, screenWidth/10, screenHeight/10, screenWidth/10 + 200, screenHeight/10 +200));
+	    
+
+
+	programVolumeRegion.x1 = screenWidth/10;
+	programVolumeRegion.y1 = screenHeight/10; 
+	programVolumeRegion.x2 = screenWidth/10 + 200;
+	programVolumeRegion.y2 = screenHeight/10 + 200;
+
+	    /* update screen */
+	    DFBCHECK(primary->Flip(primary, &programVolumeRegion, 0));
+	    
+	    /* stop the timer */
+	    memset(&timerSpecVol,0,sizeof(timerSpecVol));
+	    ret = timer_settime(timerVolId,0,&timerSpecVol,&timerSpecOldVol);
+	    if(ret == -1){
+		printf("Error setting timer in %s!\n", __FUNCTION__);
+	    }
+		printf("VIDEO WIPE VOL\n");
+	}
+
+}
 
 
 void wipeScreen(/*union sigval signalArg*/){
@@ -147,6 +220,8 @@ uint16_t initRb(){
 
 	/* structure for timer specification */
         struct sigevent signalEvent;
+        struct sigevent signalEventVol;
+
 
 	int32_t ret;
 	
@@ -187,7 +262,7 @@ uint16_t initRb(){
                        /*timer settings*/&signalEvent,
                        /*where to store the ID of the newly created timer*/&timerId);
 
-	printf("\n/* create timer */\n");
+	printf("\n/* create timer %d */\n",ret);
 	
 
 
@@ -199,17 +274,152 @@ uint16_t initRb(){
         return 0;
     }
 
+/* create timer2 */
+    signalEventVol.sigev_notify = SIGEV_THREAD; /* tell the OS to notify you about timer by calling the specified function */
+    signalEventVol.sigev_notify_function = wipeVolScreen; /* function to be called when timer runs out */
+    signalEventVol.sigev_value.sival_ptr = NULL; /* thread arguments */
+    signalEventVol.sigev_notify_attributes = NULL; /* thread attributes (e.g. thread stack size) - if NULL default attributes are applied */
+    ret = timer_create(/*clock for time measuring*/CLOCK_REALTIME,
+                       /*timer settings*/&signalEventVol,
+                       /*where to store the ID of the newly created timer*/&timerVolId);
+
+	printf("\n/* create timer2 %d */\n",ret);
+	
+
+
+    if(ret == -1){
+        printf("Error creating timer, abort!\n");
+        primary->Release(primary);
+        dfbInterface->Release(dfbInterface);
+        
+        return 0;
+    }
+
+
 }
 
 void deinitRB(){
 	timer_delete(timerId);
+
+	timer_delete(timerVolId);
 	primary->Release(primary);
 	dfbInterface->Release(dfbInterface);
 	printf("\n/* clean up */\n");
 }
 
 
+void* drawingVol(){
+	
+	printf("DRAWING VOL\n");
+    
+	/* draw image from file */
+    
+	IDirectFBImageProvider *provider;
+	IDirectFBSurface *logoSurface = NULL;
+	int32_t logoHeight, logoWidth;
+	DFBSurfaceDescription surfaceDesc;
 
+
+	if(currentChannel.videoPid == -1){
+		printf("\n\n!!!!RADIO!!!\n\n");
+
+
+	/* clear screen */
+   	 DFBCHECK(primary->SetColor(primary, 0x00, 0x00, 0x00, 0xff));
+    	 DFBCHECK(primary->FillRectangle(primary, 0, 0, screenWidth, screenHeight));
+
+	/* generate keycode string for channel*/
+	sprintf(keycodeString,"%s","RADIO ");
+
+	DFBCHECK(primary->SetColor(primary, 0xff, 0xff, 0xff, 0x55));
+	DFBCHECK(primary->DrawString(primary, keycodeString, -1, screenWidth/3, screenHeight/6, DSTF_CENTER));
+
+
+	/* create the image provider for the specified file */
+	DFBCHECK(dfbInterface->CreateImageProvider(dfbInterface, "volume_0.png", &provider));
+    /* get surface descriptor for the surface where the image will be rendered */
+	DFBCHECK(provider->GetSurfaceDescription(provider, &surfaceDesc));
+    /* create the surface for the image */
+	DFBCHECK(dfbInterface->CreateSurface(dfbInterface, &surfaceDesc, &logoSurface));
+    /* render the image to the surface */
+	DFBCHECK(provider->RenderTo(provider, logoSurface, NULL));
+	
+    /* cleanup the provider after rendering the image to the surface */
+	provider->Release(provider);
+	
+    /* fetch the logo size and add (blit) it to the screen */
+	DFBCHECK(logoSurface->GetSize(logoSurface, &logoWidth, &logoHeight));
+	printf("w: %d h:%d\n",logoWidth,logoHeight);
+	DFBCHECK(primary->Blit(primary,
+                           /*source surface*/ logoSurface,
+                           /*source region, NULL to blit the whole surface*/ NULL,
+                           /*destination x coordinate of the upper left corner of the image*/screenWidth/10,
+                           /*destination y coordinate of the upper left corner of the image*/screenHeight/10));
+
+    /* switch between the displayed and the work buffer (update the display) */
+	DFBCHECK(primary->Flip(primary,
+                           /*region to be updated, NULL for the whole surface*/NULL,
+                           /*flip flags*/0));
+    
+	/* set the timer for clearing the screen */
+    
+    	memset(&timerSpecVol,0,sizeof(timerSpecVol));
+    
+    	/* specify the timer timeout time */
+    	timerSpecVol.it_value.tv_sec = 5;
+    	timerSpecVol.it_value.tv_nsec = 0;
+    
+    	/* set the new timer specs */
+    	ret = timer_settime(timerVolId,0,&timerSpecVol,&timerSpecOldVol);
+    	if(ret == -1){
+        	printf("Error setting timer in %s!\n", __FUNCTION__);
+    	}
+
+	}else{
+	
+	
+    /* create the image provider for the specified file */
+	DFBCHECK(dfbInterface->CreateImageProvider(dfbInterface, "volume_0.png", &provider));
+    /* get surface descriptor for the surface where the image will be rendered */
+	DFBCHECK(provider->GetSurfaceDescription(provider, &surfaceDesc));
+    /* create the surface for the image */
+	DFBCHECK(dfbInterface->CreateSurface(dfbInterface, &surfaceDesc, &logoSurface));
+    /* render the image to the surface */
+	DFBCHECK(provider->RenderTo(provider, logoSurface, NULL));
+	
+    /* cleanup the provider after rendering the image to the surface */
+	provider->Release(provider);
+	
+    /* fetch the logo size and add (blit) it to the screen */
+	DFBCHECK(logoSurface->GetSize(logoSurface, &logoWidth, &logoHeight));
+	printf("w: %d h:%d\n",logoWidth,logoHeight);
+	DFBCHECK(primary->Blit(primary,
+                           /*source surface*/ logoSurface,
+                           /*source region, NULL to blit the whole surface*/ NULL,
+                           /*destination x coordinate of the upper left corner of the image*/screenWidth/10,
+                           /*destination y coordinate of the upper left corner of the image*/screenHeight/10));
+
+    /* switch between the displayed and the work buffer (update the display) */
+	DFBCHECK(primary->Flip(primary,
+                           /*region to be updated, NULL for the whole surface*/NULL,
+                           /*flip flags*/0));
+    
+	/* set the timer for clearing the screen */
+    
+    	memset(&timerSpecVol,0,sizeof(timerSpecVol));
+    
+    	/* specify the timer timeout time */
+    	timerSpecVol.it_value.tv_sec = 5;
+    	timerSpecVol.it_value.tv_nsec = 0;
+    
+    	/* set the new timer specs */
+    	ret = timer_settime(timerVolId,0,&timerSpecVol,&timerSpecOldVol);
+    	if(ret == -1){
+        	printf("Error setting timer in %s!\n", __FUNCTION__);
+    	}
+}
+
+}
 
 
 void* drawingBanner(){
@@ -310,6 +520,11 @@ void* drawingBanner(){
 
 	}else{
 	
+
+	 /* clear screen */
+   	 DFBCHECK(primary->SetColor(primary, 0x00, 0x00, 0x00, 0x00));
+    	 DFBCHECK(primary->FillRectangle(primary, 0, 0, screenWidth, screenHeight));
+
 	DFBCHECK(primary->SetColor(primary, 0x00, 0x10, 0x80, 0xff));
 	DFBCHECK(primary->FillRectangle(primary, 0, screenHeight*5/6, screenWidth, screenHeight/6));
 	printf("\n\n!!!!ISCRTAVANJE!!!\n\n");
@@ -464,13 +679,19 @@ StreamControllerError streamControllerDeinit()
 
 StreamControllerError volumeUp()
 {   
-	Player_Volume_Get(playerHandle,&volumeNumber);
-	printf("VOL: %d",volumeNumber);
+	//Player_Volume_Get(playerHandle,&volumeNumber);
+	//printf("VOL1: %d\n",volumeNumber);
 
-	//1073741824
-	Player_Volume_Set(playerHandle,volumeNumber + (1073741824/10));
-	printf("VOL: %d",volumeNumber);
-	
+	//107374182
+	Player_Volume_Set(playerHandle,volumeNumber + (2147483640/10));
+	Player_Volume_Get(playerHandle,&volumeNumber);
+	if(volumeNumber > 2147483640){
+		volumeNumber = 2147483640;
+		Player_Volume_Set(playerHandle,volumeNumber);
+		Player_Volume_Get(playerHandle,&volumeNumber);
+	}
+	printf("VOL: %d\n",volumeNumber);
+	drawingVol();
 
 
     
@@ -479,14 +700,32 @@ StreamControllerError volumeUp()
 
 StreamControllerError volumeDown()
 {   
-	Player_Volume_Get(playerHandle,&volumeNumber);
-	printf("VOL: %d",volumeNumber);	
-
-	//Player_Volume_Set(playerHandle,volumeNumber - (1073741824/10));
-	Player_Volume_Set(playerHandle,0);	
-	printf("VOL: %d",volumeNumber);
 	
 
+	//Player_Volume_Get(playerHandle,&volumeNumber);
+	//printf("VOL1: %d\n",volumeNumber);	
+	if(volumeNumber <= 0 ){
+		volumeNumber = 0;
+		Player_Volume_Set(playerHandle,volumeNumber);
+		Player_Volume_Get(playerHandle,&volumeNumber);
+	}else{
+		Player_Volume_Set(playerHandle,volumeNumber - (2147483640/10));
+		Player_Volume_Get(playerHandle,&volumeNumber);
+	}	
+	printf("VOL: %d\n",volumeNumber);
+	drawingVol();
+
+    return SC_NO_ERROR;
+}
+
+StreamControllerError mute()
+{   	
+	//volumeNumber = 0;
+	Player_Volume_Set(playerHandle,0);	
+	Player_Volume_Get(playerHandle,&volumeNumber);
+	printf("VOL: %d\n",volumeNumber);
+	
+	drawingVol();
     return SC_NO_ERROR;
 }
 
@@ -736,6 +975,8 @@ StreamControllerError startChannel(int32_t channelNumber)
         printf("Error creating info banner!\n");
         return SC_THREAD_ERROR;
     }
+
+
 
 }
 
