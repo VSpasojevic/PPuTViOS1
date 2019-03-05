@@ -18,6 +18,7 @@ if (err != DFB_OK)                                          \
 }
 
 #define FONT_HEIGHT 40
+#define VOL_MAX 2147483640
 
 static PatTable *patTable;
 static PmtTable *pmtTable;
@@ -40,6 +41,8 @@ static bool isInitialized = false;
 
 static uint16_t argVideoPid;
 static uint16_t argAudioPid;
+
+static uint8_t volFlag;
 
 tStreamType argVideoType;
 tStreamType argAudioType;
@@ -334,9 +337,59 @@ void* drawingVol(){
 	DFBCHECK(primary->SetColor(primary, 0xff, 0xff, 0xff, 0x55));
 	DFBCHECK(primary->DrawString(primary, keycodeString, -1, screenWidth/3, screenHeight/6, DSTF_CENTER));
 
+	//switch volFlag
+	printf("VOL flag: %d\n",volFlag);
+	switch(volFlag){
+
+		case 0:
+			DFBCHECK(dfbInterface->CreateImageProvider(dfbInterface, "volume_0.png", &provider));
+			break;
+			
+		case 1:
+			DFBCHECK(dfbInterface->CreateImageProvider(dfbInterface, "volume_1.png", &provider));
+			break;
+
+		case 2:
+			DFBCHECK(dfbInterface->CreateImageProvider(dfbInterface, "volume_2.png", &provider));
+			break;
+		case 3:
+			DFBCHECK(dfbInterface->CreateImageProvider(dfbInterface, "volume_3.png", &provider));
+			break;
+		case 4:
+			DFBCHECK(dfbInterface->CreateImageProvider(dfbInterface, "volume_4.png", &provider));
+			break;
+		case 5:
+			DFBCHECK(dfbInterface->CreateImageProvider(dfbInterface, "volume_5.png", &provider));
+			break;
+		case 6:
+			DFBCHECK(dfbInterface->CreateImageProvider(dfbInterface, "volume_6.png", &provider));
+			break;
+		case 7:
+			DFBCHECK(dfbInterface->CreateImageProvider(dfbInterface, "volume_7.png", &provider));
+			break;
+		case 8:
+			DFBCHECK(dfbInterface->CreateImageProvider(dfbInterface, "volume_8.png", &provider));
+			break;
+		case 9:
+			DFBCHECK(dfbInterface->CreateImageProvider(dfbInterface, "volume_9.png", &provider));
+			break;
+		case 10:
+			DFBCHECK(dfbInterface->CreateImageProvider(dfbInterface, "volume_10.png", &provider));
+			break;
+
+		default:
+			printf("WRONG VOL\n");
+			break;
+
+
+	}
+
+
+
+
 
 	/* create the image provider for the specified file */
-	DFBCHECK(dfbInterface->CreateImageProvider(dfbInterface, "volume_0.png", &provider));
+	//DFBCHECK(dfbInterface->CreateImageProvider(dfbInterface, "volume_1.png", &provider));
     /* get surface descriptor for the surface where the image will be rendered */
 	DFBCHECK(provider->GetSurfaceDescription(provider, &surfaceDesc));
     /* create the surface for the image */
@@ -376,10 +429,55 @@ void* drawingVol(){
     	}
 
 	}else{
-	
+
+	printf("VOL flag: %d\n",volFlag);
+	switch(volFlag){
+
+		case 0:
+			DFBCHECK(dfbInterface->CreateImageProvider(dfbInterface, "volume_0.png", &provider));
+			break;
+			
+		case 1:
+			DFBCHECK(dfbInterface->CreateImageProvider(dfbInterface, "volume_1.png", &provider));
+			break;
+
+		case 2:
+			DFBCHECK(dfbInterface->CreateImageProvider(dfbInterface, "volume_2.png", &provider));
+			break;
+		case 3:
+			DFBCHECK(dfbInterface->CreateImageProvider(dfbInterface, "volume_3.png", &provider));
+			break;
+		case 4:
+			DFBCHECK(dfbInterface->CreateImageProvider(dfbInterface, "volume_4.png", &provider));
+			break;
+		case 5:
+			DFBCHECK(dfbInterface->CreateImageProvider(dfbInterface, "volume_5.png", &provider));
+			break;
+		case 6:
+			DFBCHECK(dfbInterface->CreateImageProvider(dfbInterface, "volume_6.png", &provider));
+			break;
+		case 7:
+			DFBCHECK(dfbInterface->CreateImageProvider(dfbInterface, "volume_7.png", &provider));
+			break;
+		case 8:
+			DFBCHECK(dfbInterface->CreateImageProvider(dfbInterface, "volume_8.png", &provider));
+			break;
+		case 9:
+			DFBCHECK(dfbInterface->CreateImageProvider(dfbInterface, "volume_9.png", &provider));
+			break;
+		case 10:
+			DFBCHECK(dfbInterface->CreateImageProvider(dfbInterface, "volume_10.png", &provider));
+			break;
+
+		default:
+			printf("WRONG VOL\n");
+			break;
+
+
+	}
 	
     /* create the image provider for the specified file */
-	DFBCHECK(dfbInterface->CreateImageProvider(dfbInterface, "volume_0.png", &provider));
+	//DFBCHECK(dfbInterface->CreateImageProvider(dfbInterface, "volume_0.png", &provider));
     /* get surface descriptor for the surface where the image will be rendered */
 	DFBCHECK(provider->GetSurfaceDescription(provider, &surfaceDesc));
     /* create the surface for the image */
@@ -620,8 +718,12 @@ StreamControllerError streamControllerInit(argStruct* arg_struct)
 	
 	
 	initRb();
+	//test
+	
 
 	
+
+
     if (pthread_create(&scThread, NULL, &streamControllerTask, arg_struct))
     {
         printf("Error creating input event task!\n");
@@ -676,27 +778,28 @@ StreamControllerError streamControllerDeinit()
     return SC_NO_ERROR;
 }
 
-
 StreamControllerError volumeUp()
 {   
-	//Player_Volume_Get(playerHandle,&volumeNumber);
-	//printf("VOL1: %d\n",volumeNumber);
-
 	//107374182
-	Player_Volume_Set(playerHandle,volumeNumber + (2147483640/10));
+
+	volFlag++;
+	Player_Volume_Set(playerHandle,volumeNumber + (VOL_MAX/10));
 	Player_Volume_Get(playerHandle,&volumeNumber);
-	if(volumeNumber > 2147483640){
-		volumeNumber = 2147483640;
+	if(volumeNumber > VOL_MAX){
+		volFlag = 10;
+		volumeNumber = VOL_MAX;
 		Player_Volume_Set(playerHandle,volumeNumber);
 		Player_Volume_Get(playerHandle,&volumeNumber);
 	}
 	printf("VOL: %d\n",volumeNumber);
+	printf("VOL flag: %d\n",volFlag);
 	drawingVol();
 
 
     
     return SC_NO_ERROR;
 }
+
 
 StreamControllerError volumeDown()
 {   
@@ -705,14 +808,17 @@ StreamControllerError volumeDown()
 	//Player_Volume_Get(playerHandle,&volumeNumber);
 	//printf("VOL1: %d\n",volumeNumber);	
 	if(volumeNumber <= 0 ){
+		volFlag = 0;
 		volumeNumber = 0;
 		Player_Volume_Set(playerHandle,volumeNumber);
 		Player_Volume_Get(playerHandle,&volumeNumber);
 	}else{
-		Player_Volume_Set(playerHandle,volumeNumber - (2147483640/10));
+		Player_Volume_Set(playerHandle,volumeNumber - (VOL_MAX/10));
 		Player_Volume_Get(playerHandle,&volumeNumber);
+		volFlag--;
 	}	
 	printf("VOL: %d\n",volumeNumber);
+	printf("VOL flag: %d\n",volFlag);	
 	drawingVol();
 
     return SC_NO_ERROR;
@@ -720,6 +826,7 @@ StreamControllerError volumeDown()
 
 StreamControllerError mute()
 {   	
+	volFlag = 0;
 	//volumeNumber = 0;
 	Player_Volume_Set(playerHandle,0);	
 	Player_Volume_Get(playerHandle,&volumeNumber);
@@ -813,7 +920,11 @@ StreamControllerError getChannelInfo(ChannelInfo* channelInfo)
  */
 StreamControllerError startChannel(int32_t channelNumber)
 {
-    
+
+ /* clear screen */
+   	 DFBCHECK(primary->SetColor(primary, 0x00, 0x00, 0x00, 0x00));
+    	 DFBCHECK(primary->FillRectangle(primary, 0, 0, screenWidth, screenHeight));
+
     /* free PAT table filter */
     Demux_Free_Filter(playerHandle, filterHandle);
     
@@ -1090,7 +1201,12 @@ void* streamControllerTask(argStruct* arg_struct)
 	pthread_mutex_unlock(&demuxMutex);
     
 
-	//graph();
+	volFlag = 5;
+
+	printf("volNum1: %d\n",volumeNumber);
+	Player_Volume_Set(playerHandle,(VOL_MAX/10)*volFlag);
+	Player_Volume_Get(playerHandle,&volumeNumber);
+	printf("volNum: %d\n",volumeNumber);
 
     /* start current channel */
     startChannel(programNumber);
