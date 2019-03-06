@@ -326,19 +326,119 @@ void* drawingEpg(){
 
 
 	/* clear screen */
-   	 /*DFBCHECK(primary->SetColor(primary, 0x00, 0x00, 0x00, 0xff));
+   	 DFBCHECK(primary->SetColor(primary, 0x00, 0x00, 0x00, 0xff));
     	 DFBCHECK(primary->FillRectangle(primary, 0, 0, screenWidth, screenHeight));
-*/
 
-	DFBCHECK(primary->SetColor(primary, 0x00, 0x10, 0x80, 0x00));
-	DFBCHECK(primary->FillRectangle(primary, 0, 0, screenWidth/2, screenHeight/2));
+
+	DFBCHECK(primary->SetColor(primary, 0x00, 0x10, 0x80, 0xff));
+	DFBCHECK(primary->FillRectangle(primary, screenWidth*3/4, 0, screenWidth, screenHeight*3/4));
 
 
 	/* generate keycode string for channel*/
 	sprintf(keycodeString,"%s"," CHANNEL LIST");
 
 	DFBCHECK(primary->SetColor(primary, 0xff, 0xff, 0xff, 0x55));
-	DFBCHECK(primary->DrawString(primary, keycodeString, -1, 550, 150, DSTF_CENTER));
+	DFBCHECK(primary->DrawString(primary, keycodeString, -1, 1700, 50, DSTF_CENTER));
+
+	sprintf(keycodeString,"%s"," CH1");
+
+	DFBCHECK(primary->SetColor(primary, 0xff, 0xff, 0xff, 0x55));
+	DFBCHECK(primary->DrawString(primary, keycodeString, -1, 1480, 120, DSTF_CENTER));
+
+	sprintf(keycodeString,"Provider: %s",channelList[0].providerName);
+
+	DFBCHECK(primary->SetColor(primary, 0xff, 0xff, 0xff, 0x55));
+	DFBCHECK(primary->DrawString(primary, keycodeString, -1, 1700, 100, DSTF_CENTER));
+	sprintf(keycodeString,"Service: %s",channelList[0].serviceName);
+
+	DFBCHECK(primary->SetColor(primary, 0xff, 0xff, 0xff, 0x55));
+	DFBCHECK(primary->DrawString(primary, keycodeString, -1, 1700, 150, DSTF_CENTER));
+
+
+	sprintf(keycodeString,"%s"," CH2");
+
+	DFBCHECK(primary->SetColor(primary, 0xff, 0xff, 0xff, 0x55));
+	DFBCHECK(primary->DrawString(primary, keycodeString, -1, 1480, 220, DSTF_CENTER));
+
+	sprintf(keycodeString,"Provider: %s",channelList[1].providerName);
+
+	DFBCHECK(primary->SetColor(primary, 0xff, 0xff, 0xff, 0x55));
+	DFBCHECK(primary->DrawString(primary, keycodeString, -1, 1700, 200, DSTF_CENTER));
+	sprintf(keycodeString,"Service: %s",channelList[1].serviceName);
+
+	DFBCHECK(primary->SetColor(primary, 0xff, 0xff, 0xff, 0x55));
+	DFBCHECK(primary->DrawString(primary, keycodeString, -1, 1700, 250, DSTF_CENTER));
+
+	sprintf(keycodeString,"%s"," CH3");
+
+	DFBCHECK(primary->SetColor(primary, 0xff, 0xff, 0xff, 0x55));
+	DFBCHECK(primary->DrawString(primary, keycodeString, -1, 1480, 320, DSTF_CENTER));
+
+	sprintf(keycodeString,"Provider: %s",channelList[2].providerName);
+
+	DFBCHECK(primary->SetColor(primary, 0xff, 0xff, 0xff, 0x55));
+	DFBCHECK(primary->DrawString(primary, keycodeString, -1, 1700, 300, DSTF_CENTER));
+	sprintf(keycodeString,"Service: %s",channelList[2].serviceName);
+
+	DFBCHECK(primary->SetColor(primary, 0xff, 0xff, 0xff, 0x55));
+
+	DFBCHECK(primary->DrawString(primary, keycodeString, -1, 1700, 350, DSTF_CENTER));
+	sprintf(keycodeString,"%s"," CH4");
+
+	DFBCHECK(primary->SetColor(primary, 0xff, 0xff, 0xff, 0x55));
+	DFBCHECK(primary->DrawString(primary, keycodeString, -1, 1480, 420, DSTF_CENTER));
+
+	sprintf(keycodeString,"Provider: %s",channelList[3].providerName);
+
+	DFBCHECK(primary->SetColor(primary, 0xff, 0xff, 0xff, 0x55));
+	DFBCHECK(primary->DrawString(primary, keycodeString, -1, 1700, 400, DSTF_CENTER));
+	sprintf(keycodeString,"Service: %s",channelList[3].serviceName);
+
+	DFBCHECK(primary->SetColor(primary, 0xff, 0xff, 0xff, 0x55));
+	DFBCHECK(primary->DrawString(primary, keycodeString, -1, 1700, 450, DSTF_CENTER));
+
+	sprintf(keycodeString,"%s"," CH5");
+
+	DFBCHECK(primary->SetColor(primary, 0xff, 0xff, 0xff, 0x55));
+	DFBCHECK(primary->DrawString(primary, keycodeString, -1, 1480, 520, DSTF_CENTER));
+
+	sprintf(keycodeString,"Provider: %s",channelList[4].providerName);
+
+	DFBCHECK(primary->SetColor(primary, 0xff, 0xff, 0xff, 0x55));
+	DFBCHECK(primary->DrawString(primary, keycodeString, -1, 1700, 500, DSTF_CENTER));
+	sprintf(keycodeString,"Service: %s",channelList[4].serviceName);
+
+	DFBCHECK(primary->SetColor(primary, 0xff, 0xff, 0xff, 0x55));
+	DFBCHECK(primary->DrawString(primary, keycodeString, -1, 1700, 550, DSTF_CENTER));
+
+	sprintf(keycodeString,"%s"," CH6");
+
+	DFBCHECK(primary->SetColor(primary, 0xff, 0xff, 0xff, 0x55));
+	DFBCHECK(primary->DrawString(primary, keycodeString, -1, 1480, 620, DSTF_CENTER));
+
+	sprintf(keycodeString,"Provider: %s",channelList[5].providerName);
+
+	DFBCHECK(primary->SetColor(primary, 0xff, 0xff, 0xff, 0x55));
+	DFBCHECK(primary->DrawString(primary, keycodeString, -1, 1700, 600, DSTF_CENTER));
+	sprintf(keycodeString,"Service: %s",channelList[5].serviceName);
+
+	DFBCHECK(primary->SetColor(primary, 0xff, 0xff, 0xff, 0x55));
+	DFBCHECK(primary->DrawString(primary, keycodeString, -1, 1700, 650, DSTF_CENTER));
+	
+	sprintf(keycodeString,"%s"," CH7");
+
+	DFBCHECK(primary->SetColor(primary, 0xff, 0xff, 0xff, 0x55));
+	DFBCHECK(primary->DrawString(primary, keycodeString, -1, 1480, 720, DSTF_CENTER));
+
+	sprintf(keycodeString,"Provider: %s",channelList[6].providerName);
+
+	DFBCHECK(primary->SetColor(primary, 0xff, 0xff, 0xff, 0x55));
+	DFBCHECK(primary->DrawString(primary, keycodeString, -1, 1700, 700, DSTF_CENTER));
+	sprintf(keycodeString,"Service: %s",channelList[6].serviceName);
+
+	DFBCHECK(primary->SetColor(primary, 0xff, 0xff, 0xff, 0x55));
+	DFBCHECK(primary->DrawString(primary, keycodeString, -1, 1700, 750, DSTF_CENTER));
+
 
 
     /* switch between the displayed and the work buffer (update the display) */
