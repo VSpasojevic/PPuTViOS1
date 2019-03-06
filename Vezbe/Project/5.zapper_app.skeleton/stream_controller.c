@@ -56,6 +56,7 @@ uint8_t firstA = 0;
 
 static timer_t timerId;
 static timer_t timerVolId;
+static timer_t timerListId;
 
 static IDirectFBSurface *primary = NULL;
 IDirectFB *dfbInterface = NULL;
@@ -64,6 +65,8 @@ static int32_t screenHeight = 0;
 
 static DFBRegion programInfoBannerRegion;
 static DFBRegion programVolumeRegion;
+static DFBRegion programListRegion;
+
 
 bool txt = false;
 int32_t ret;
@@ -77,6 +80,9 @@ static struct itimerspec timerSpecOld;
 
 static struct itimerspec timerSpecVol;
 static struct itimerspec timerSpecOldVol;
+
+static struct itimerspec timerSpecList;
+static struct itimerspec timerSpecOldList;
 
 static struct timespec lockStatusWaitTime;
 static struct timeval now;
@@ -92,7 +98,71 @@ static StreamControllerError startChannel(int32_t channelNumber);
 static char keycodeString[10];
 
 
+void wipeListScreen(){
 
+
+	if(currentChannel.videoPid == -1){
+		printf("RADIO WIPE LIST pre\n");
+
+
+	 /* clear screen */
+   	 DFBCHECK(primary->SetColor(primary, 0x00, 0x00, 0x00, 0x00));
+    	 DFBCHECK(primary->FillRectangle(primary, 0, 0, screenWidth, screenHeight));
+
+	//screenWidth*3/4, 0, screenWidth, screenHeight*3/4 sredi sve
+	//set for region
+	    DFBCHECK(primary->SetColor(primary, 0x00, 0x00, 0x00, 0xff));
+	    DFBCHECK(primary->FillRectangle(primary, screenWidth*3/4, 0, screenWidth, screenHeight*3/4));
+	    
+
+
+	    programListRegion.x1 = screenWidth*3/4;
+	    programListRegion.y1 = 0; 
+	    programListRegion.x2 = screenWidth;
+	    programListRegion.y2 = screenHeight*3/4;
+
+	    /* update screen */
+	    DFBCHECK(primary->Flip(primary, &programListRegion, 0));
+	    
+	    /* stop the timer */
+	    memset(&timerSpecList,0,sizeof(timerSpecList));
+	    ret = timer_settime(timerListId,0,&timerSpecList,&timerSpecOldList);
+	    if(ret == -1){
+		printf("Error setting timer in %s!\n", __FUNCTION__);
+	    }
+
+
+	printf("RADIO WIPE LIST\n");
+
+
+
+	}else{
+
+ 	/* clear screen */
+	//set for region
+	    DFBCHECK(primary->SetColor(primary, 0x00, 0x00, 0x00, 0x00));
+	    DFBCHECK(primary->FillRectangle(primary, screenWidth*3/4, 0, screenWidth, screenHeight*3/4));
+	    
+
+
+	    programListRegion.x1 = screenWidth*3/4;
+	    programListRegion.y1 = 0; 
+	    programListRegion.x2 = screenWidth;
+	    programListRegion.y2 = screenHeight*3/4;
+
+	    /* update screen */
+	    DFBCHECK(primary->Flip(primary, &programListRegion, 0));
+	    
+	    /* stop the timer */
+	    memset(&timerSpecList,0,sizeof(timerSpecList));
+	    ret = timer_settime(timerListId,0,&timerSpecList,&timerSpecOldList);
+	    if(ret == -1){
+		printf("Error setting timer in %s!\n", __FUNCTION__);
+	    }
+		printf("VIDEO WIPE LIST\n");
+	}
+
+}
 void wipeVolScreen(){
 
 
@@ -109,10 +179,10 @@ void wipeVolScreen(){
 	    
 
 
-	programVolumeRegion.x1 = screenWidth/10;
-	programVolumeRegion.y1 = screenHeight/10; 
-	programVolumeRegion.x2 = screenWidth/10 + 200;
-	programVolumeRegion.y2 = screenHeight/10 + 200;
+	    programVolumeRegion.x1 = screenWidth/10;
+	    programVolumeRegion.y1 = screenHeight/10; 
+	    programVolumeRegion.x2 = screenWidth/10 + 200;
+	    programVolumeRegion.y2 = screenHeight/10 + 200;
 
 	    /* update screen */
 	    DFBCHECK(primary->Flip(primary, &programVolumeRegion, 0));
@@ -138,10 +208,10 @@ void wipeVolScreen(){
 	    
 
 
-	programVolumeRegion.x1 = screenWidth/10;
-	programVolumeRegion.y1 = screenHeight/10; 
-	programVolumeRegion.x2 = screenWidth/10 + 200;
-	programVolumeRegion.y2 = screenHeight/10 + 200;
+	    programVolumeRegion.x1 = screenWidth/10;
+	    programVolumeRegion.y1 = screenHeight/10; 
+	    programVolumeRegion.x2 = screenWidth/10 + 200;
+	    programVolumeRegion.y2 = screenHeight/10 + 200;
 
 	    /* update screen */
 	    DFBCHECK(primary->Flip(primary, &programVolumeRegion, 0));
@@ -173,10 +243,10 @@ void wipeScreen(/*union sigval signalArg*/){
 	DFBCHECK(primary->SetColor(primary, 0xff, 0xff, 0xff, 0x55));
 	DFBCHECK(primary->DrawString(primary, keycodeString, -1, screenWidth/3, screenHeight/6, DSTF_CENTER));
 */
-	programInfoBannerRegion.x1 = 0;
-	programInfoBannerRegion.y1 = screenHeight*5/6; 
-	programInfoBannerRegion.x2 = screenWidth;
-	programInfoBannerRegion.y2 = screenHeight;
+	    programInfoBannerRegion.x1 = 0;
+	    programInfoBannerRegion.y1 = screenHeight*5/6; 
+	    programInfoBannerRegion.x2 = screenWidth;
+	    programInfoBannerRegion.y2 = screenHeight;
 
 	    /* update screen */
 	    DFBCHECK(primary->Flip(primary, &programInfoBannerRegion, 0));
@@ -196,10 +266,10 @@ void wipeScreen(/*union sigval signalArg*/){
 	    
 
 
-	programInfoBannerRegion.x1 = 0;
-	programInfoBannerRegion.y1 = screenHeight*5/6; 
-	programInfoBannerRegion.x2 = screenWidth;
-	programInfoBannerRegion.y2 = screenHeight;
+	    programInfoBannerRegion.x1 = 0;
+	    programInfoBannerRegion.y1 = screenHeight*5/6; 
+	    programInfoBannerRegion.x2 = screenWidth;
+	    programInfoBannerRegion.y2 = screenHeight;
 
 	    /* update screen */
 	    DFBCHECK(primary->Flip(primary, &programInfoBannerRegion, 0));
@@ -228,6 +298,7 @@ uint16_t initRb(){
 	/* structure for timer specification */
         struct sigevent signalEvent;
         struct sigevent signalEventVol;
+	struct sigevent signalEventList;
 
 
 	int32_t ret;
@@ -302,6 +373,28 @@ uint16_t initRb(){
         return 0;
     }
 
+	/* create timer3 */
+    signalEventList.sigev_notify = SIGEV_THREAD; /* tell the OS to notify you about timer by calling the specified function */
+    signalEventList.sigev_notify_function = wipeListScreen; /* function to be called when timer runs out */
+    signalEventList.sigev_value.sival_ptr = NULL; /* thread arguments */
+    signalEventList.sigev_notify_attributes = NULL; /* thread attributes (e.g. thread stack size) - if NULL default attributes are applied */
+    ret = timer_create(/*clock for time measuring*/CLOCK_REALTIME,
+                       /*timer settings*/&signalEventList,
+                       /*where to store the ID of the newly created timer*/&timerListId);
+
+	printf("\n/* create timer3 %d */\n",ret);
+	
+
+
+    if(ret == -1){
+        printf("Error creating timer, abort!\n");
+        primary->Release(primary);
+        dfbInterface->Release(dfbInterface);
+        
+        return 0;
+    }
+
+
 
 }
 
@@ -328,6 +421,14 @@ void* drawingEpg(){
 	/* clear screen */
    	 DFBCHECK(primary->SetColor(primary, 0x00, 0x00, 0x00, 0xff));
     	 DFBCHECK(primary->FillRectangle(primary, 0, 0, screenWidth, screenHeight));
+
+
+	/* generate keycode string for channel*/
+	sprintf(keycodeString,"%s","RADIO ");
+
+	DFBCHECK(primary->SetColor(primary, 0xff, 0xff, 0xff, 0x55));
+	DFBCHECK(primary->DrawString(primary, keycodeString, -1, screenWidth/3, screenHeight/6, DSTF_CENTER));
+
 
 
 	DFBCHECK(primary->SetColor(primary, 0x00, 0x10, 0x80, 0xff));
@@ -445,6 +546,23 @@ void* drawingEpg(){
 	DFBCHECK(primary->Flip(primary,
                            /*region to be updated, NULL for the whole surface*/NULL,
                            /*flip flags*/0));
+
+
+
+	/* set the timer for clearing the screen */
+    
+    	memset(&timerSpecList,0,sizeof(timerSpecList));
+    
+    	/* specify the timer timeout time */
+    	timerSpecList.it_value.tv_sec = 5;
+    	timerSpecList.it_value.tv_nsec = 0;
+    
+    	/* set the new timer specs */
+    	ret = timer_settime(timerListId,0,&timerSpecList,&timerSpecOldList);
+    	if(ret == -1){
+        	printf("Error setting timer in %s!\n", __FUNCTION__);
+    	}
+
     
 	
     
@@ -569,6 +687,22 @@ void* drawingEpg(){
 	DFBCHECK(primary->Flip(primary,
                            /*region to be updated, NULL for the whole surface*/NULL,
                            /*flip flags*/0));
+
+
+
+/* set the timer for clearing the screen */
+    
+    	memset(&timerSpecList,0,sizeof(timerSpecList));
+    
+    	/* specify the timer timeout time */
+    	timerSpecList.it_value.tv_sec = 5;
+    	timerSpecList.it_value.tv_nsec = 0;
+    
+    	/* set the new timer specs */
+    	ret = timer_settime(timerListId,0,&timerSpecList,&timerSpecOldList);
+    	if(ret == -1){
+        	printf("Error setting timer in %s!\n", __FUNCTION__);
+	}
     
 }
 
@@ -757,7 +891,7 @@ void* drawingVol(){
 	
     /* fetch the logo size and add (blit) it to the screen */
 	DFBCHECK(logoSurface->GetSize(logoSurface, &logoWidth, &logoHeight));
-	printf("w: %d h:%d\n",logoWidth,logoHeight);
+	//printf("w: %d h:%d\n",logoWidth,logoHeight);
 	DFBCHECK(primary->Blit(primary,
                            /*source surface*/ logoSurface,
                            /*source region, NULL to blit the whole surface*/ NULL,
