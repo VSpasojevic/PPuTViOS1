@@ -22,6 +22,10 @@ if (err != DFB_OK)                                          \
 
 static PatTable *patTable;
 static PmtTable *pmtTable;
+static SdtTable* sdtTable;
+
+static ChannelList channelList[10];
+
 static pthread_cond_t statusCondition = PTHREAD_COND_INITIALIZER;
 static pthread_mutex_t statusMutex = PTHREAD_MUTEX_INITIALIZER;
 
@@ -310,6 +314,165 @@ void deinitRB(){
 	printf("\n/* clean up */\n");
 }
 
+void* drawingEpg(){
+	
+	printf("DRAWING EPG\n");
+    
+	
+
+
+	if(currentChannel.videoPid == -1){
+		printf("\n\n!!!!RADIO!!!\n\n");
+
+
+	/* clear screen */
+   	 /*DFBCHECK(primary->SetColor(primary, 0x00, 0x00, 0x00, 0xff));
+    	 DFBCHECK(primary->FillRectangle(primary, 0, 0, screenWidth, screenHeight));
+*/
+
+	DFBCHECK(primary->SetColor(primary, 0x00, 0x10, 0x80, 0x00));
+	DFBCHECK(primary->FillRectangle(primary, 0, 0, screenWidth/2, screenHeight/2));
+
+
+	/* generate keycode string for channel*/
+	sprintf(keycodeString,"%s"," CHANNEL LIST");
+
+	DFBCHECK(primary->SetColor(primary, 0xff, 0xff, 0xff, 0x55));
+	DFBCHECK(primary->DrawString(primary, keycodeString, -1, 550, 150, DSTF_CENTER));
+
+
+    /* switch between the displayed and the work buffer (update the display) */
+	DFBCHECK(primary->Flip(primary,
+                           /*region to be updated, NULL for the whole surface*/NULL,
+                           /*flip flags*/0));
+    
+	
+    
+	}else{
+
+	/* clear screen */
+   	 DFBCHECK(primary->SetColor(primary, 0x00, 0x00, 0x00, 0x00));
+    	 DFBCHECK(primary->FillRectangle(primary, 0, 0, screenWidth, screenHeight));
+
+	DFBCHECK(primary->SetColor(primary, 0x00, 0x10, 0x80, 0x55));
+	DFBCHECK(primary->FillRectangle(primary, screenWidth*3/4, 0, screenWidth, screenHeight*3/4));
+
+
+	/* generate keycode string for channel*/
+	sprintf(keycodeString,"%s"," CHANNEL LIST");
+
+	DFBCHECK(primary->SetColor(primary, 0xff, 0xff, 0xff, 0x55));
+	DFBCHECK(primary->DrawString(primary, keycodeString, -1, 1700, 50, DSTF_CENTER));
+
+	sprintf(keycodeString,"%s"," CH1");
+
+	DFBCHECK(primary->SetColor(primary, 0xff, 0xff, 0xff, 0x55));
+	DFBCHECK(primary->DrawString(primary, keycodeString, -1, 1480, 120, DSTF_CENTER));
+
+	sprintf(keycodeString,"Provider: %s",channelList[0].providerName);
+
+	DFBCHECK(primary->SetColor(primary, 0xff, 0xff, 0xff, 0x55));
+	DFBCHECK(primary->DrawString(primary, keycodeString, -1, 1700, 100, DSTF_CENTER));
+	sprintf(keycodeString,"Service: %s",channelList[0].serviceName);
+
+	DFBCHECK(primary->SetColor(primary, 0xff, 0xff, 0xff, 0x55));
+	DFBCHECK(primary->DrawString(primary, keycodeString, -1, 1700, 150, DSTF_CENTER));
+
+
+	sprintf(keycodeString,"%s"," CH2");
+
+	DFBCHECK(primary->SetColor(primary, 0xff, 0xff, 0xff, 0x55));
+	DFBCHECK(primary->DrawString(primary, keycodeString, -1, 1480, 220, DSTF_CENTER));
+
+	sprintf(keycodeString,"Provider: %s",channelList[1].providerName);
+
+	DFBCHECK(primary->SetColor(primary, 0xff, 0xff, 0xff, 0x55));
+	DFBCHECK(primary->DrawString(primary, keycodeString, -1, 1700, 200, DSTF_CENTER));
+	sprintf(keycodeString,"Service: %s",channelList[1].serviceName);
+
+	DFBCHECK(primary->SetColor(primary, 0xff, 0xff, 0xff, 0x55));
+	DFBCHECK(primary->DrawString(primary, keycodeString, -1, 1700, 250, DSTF_CENTER));
+
+	sprintf(keycodeString,"%s"," CH3");
+
+	DFBCHECK(primary->SetColor(primary, 0xff, 0xff, 0xff, 0x55));
+	DFBCHECK(primary->DrawString(primary, keycodeString, -1, 1480, 320, DSTF_CENTER));
+
+	sprintf(keycodeString,"Provider: %s",channelList[2].providerName);
+
+	DFBCHECK(primary->SetColor(primary, 0xff, 0xff, 0xff, 0x55));
+	DFBCHECK(primary->DrawString(primary, keycodeString, -1, 1700, 300, DSTF_CENTER));
+	sprintf(keycodeString,"Service: %s",channelList[2].serviceName);
+
+	DFBCHECK(primary->SetColor(primary, 0xff, 0xff, 0xff, 0x55));
+
+	DFBCHECK(primary->DrawString(primary, keycodeString, -1, 1700, 350, DSTF_CENTER));
+	sprintf(keycodeString,"%s"," CH4");
+
+	DFBCHECK(primary->SetColor(primary, 0xff, 0xff, 0xff, 0x55));
+	DFBCHECK(primary->DrawString(primary, keycodeString, -1, 1480, 420, DSTF_CENTER));
+
+	sprintf(keycodeString,"Provider: %s",channelList[3].providerName);
+
+	DFBCHECK(primary->SetColor(primary, 0xff, 0xff, 0xff, 0x55));
+	DFBCHECK(primary->DrawString(primary, keycodeString, -1, 1700, 400, DSTF_CENTER));
+	sprintf(keycodeString,"Service: %s",channelList[3].serviceName);
+
+	DFBCHECK(primary->SetColor(primary, 0xff, 0xff, 0xff, 0x55));
+	DFBCHECK(primary->DrawString(primary, keycodeString, -1, 1700, 450, DSTF_CENTER));
+
+	sprintf(keycodeString,"%s"," CH5");
+
+	DFBCHECK(primary->SetColor(primary, 0xff, 0xff, 0xff, 0x55));
+	DFBCHECK(primary->DrawString(primary, keycodeString, -1, 1480, 520, DSTF_CENTER));
+
+	sprintf(keycodeString,"Provider: %s",channelList[4].providerName);
+
+	DFBCHECK(primary->SetColor(primary, 0xff, 0xff, 0xff, 0x55));
+	DFBCHECK(primary->DrawString(primary, keycodeString, -1, 1700, 500, DSTF_CENTER));
+	sprintf(keycodeString,"Service: %s",channelList[4].serviceName);
+
+	DFBCHECK(primary->SetColor(primary, 0xff, 0xff, 0xff, 0x55));
+	DFBCHECK(primary->DrawString(primary, keycodeString, -1, 1700, 550, DSTF_CENTER));
+
+	sprintf(keycodeString,"%s"," CH6");
+
+	DFBCHECK(primary->SetColor(primary, 0xff, 0xff, 0xff, 0x55));
+	DFBCHECK(primary->DrawString(primary, keycodeString, -1, 1480, 620, DSTF_CENTER));
+
+	sprintf(keycodeString,"Provider: %s",channelList[5].providerName);
+
+	DFBCHECK(primary->SetColor(primary, 0xff, 0xff, 0xff, 0x55));
+	DFBCHECK(primary->DrawString(primary, keycodeString, -1, 1700, 600, DSTF_CENTER));
+	sprintf(keycodeString,"Service: %s",channelList[5].serviceName);
+
+	DFBCHECK(primary->SetColor(primary, 0xff, 0xff, 0xff, 0x55));
+	DFBCHECK(primary->DrawString(primary, keycodeString, -1, 1700, 650, DSTF_CENTER));
+	
+	sprintf(keycodeString,"%s"," CH7");
+
+	DFBCHECK(primary->SetColor(primary, 0xff, 0xff, 0xff, 0x55));
+	DFBCHECK(primary->DrawString(primary, keycodeString, -1, 1480, 720, DSTF_CENTER));
+
+	sprintf(keycodeString,"Provider: %s",channelList[6].providerName);
+
+	DFBCHECK(primary->SetColor(primary, 0xff, 0xff, 0xff, 0x55));
+	DFBCHECK(primary->DrawString(primary, keycodeString, -1, 1700, 700, DSTF_CENTER));
+	sprintf(keycodeString,"Service: %s",channelList[6].serviceName);
+
+	DFBCHECK(primary->SetColor(primary, 0xff, 0xff, 0xff, 0x55));
+	DFBCHECK(primary->DrawString(primary, keycodeString, -1, 1700, 750, DSTF_CENTER));
+
+
+
+    /* switch between the displayed and the work buffer (update the display) */
+	DFBCHECK(primary->Flip(primary,
+                           /*region to be updated, NULL for the whole surface*/NULL,
+                           /*flip flags*/0));
+    
+}
+
+}
 
 void* drawingVol(){
 	
@@ -402,7 +565,7 @@ void* drawingVol(){
 	
     /* fetch the logo size and add (blit) it to the screen */
 	DFBCHECK(logoSurface->GetSize(logoSurface, &logoWidth, &logoHeight));
-	printf("w: %d h:%d\n",logoWidth,logoHeight);
+	//printf("w: %d h:%d\n",logoWidth,logoHeight);
 	DFBCHECK(primary->Blit(primary,
                            /*source surface*/ logoSurface,
                            /*source region, NULL to blit the whole surface*/ NULL,
@@ -429,6 +592,10 @@ void* drawingVol(){
     	}
 
 	}else{
+
+	/* clear screen */
+   	 DFBCHECK(primary->SetColor(primary, 0x00, 0x00, 0x00, 0x00));
+    	 DFBCHECK(primary->FillRectangle(primary, 0, 0, screenWidth, screenHeight));
 
 	printf("VOL flag: %d\n",volFlag);
 	switch(volFlag){
@@ -719,6 +886,9 @@ StreamControllerError streamControllerInit(argStruct* arg_struct)
 	
 	initRb();
 	//test
+	//alocate memory for list structure
+	
+	//channelList = (ChannelList) malloc(sizeof(ChannelList));
 	
 
 	
@@ -769,12 +939,34 @@ StreamControllerError streamControllerDeinit()
     /* free allocated memory */  
     free(patTable);
     free(pmtTable);
+    free(sdtTable);
+    
     
     /* set isInitialized flag */
     isInitialized = false;
 
     deinitRB();
 
+    return SC_NO_ERROR;
+}
+
+
+
+StreamControllerError epg()
+{   
+	printf("EPG\n");
+	int i;
+	for(i=0;i<7;i++){
+			
+		printf("Number :%d\n",channelList[i].number);
+		printf("Provider :%s\n",channelList[i].providerName);
+		printf("Service :%s\n",channelList[i].serviceName);
+	}
+	
+	
+	drawingEpg();
+
+    
     return SC_NO_ERROR;
 }
 
@@ -1080,14 +1272,32 @@ StreamControllerError startChannel(int32_t channelNumber)
     currentChannel.audioPid = audioPid;
     currentChannel.videoPid = videoPid;
 
-	//pokretanje niti
+
+	//running thread for infobanner
     if (pthread_create(&drawThread, NULL, &drawingBanner, NULL))
     {
         printf("Error creating info banner!\n");
         return SC_THREAD_ERROR;
     }
 
-
+	/* free PMT table filter */
+    Demux_Free_Filter(playerHandle, filterHandle);
+    
+    	 /* set demux filter for receive SDT table of program */
+    if(Demux_Set_Filter(playerHandle, 0x11, 0x42, &filterHandle))
+	{
+		printf("\n%s : ERROR Demux_Set_Filter() fail\n", __FUNCTION__);
+        return;
+	}
+    
+    /* wait for a SDT table to be parsed*/
+    pthread_mutex_lock(&demuxMutex);
+	if (ETIMEDOUT == pthread_cond_wait(&demuxCond, &demuxMutex))
+	{
+		printf("\n%s : ERROR Lock timeout exceeded!\n", __FUNCTION__);
+        streamControllerDeinit();
+	}
+	pthread_mutex_unlock(&demuxMutex);
 
 }
 
@@ -1113,6 +1323,19 @@ void* streamControllerTask(argStruct* arg_struct)
         return (void*) SC_ERROR;
 	}  
     memset(pmtTable, 0x0, sizeof(PmtTable));
+
+/***************************************** SDT TABLE *********************************/
+    /* allocate memory for SDT table section */
+    sdtTable=(SdtTable*)malloc(sizeof(SdtTable));
+    if(sdtTable==NULL)
+    {
+		printf("\n%s : ERROR Cannot allocate memory\n", __FUNCTION__);
+        return (void*) SC_ERROR;
+	}  
+    memset(sdtTable, 0x0, sizeof(SdtTable));
+
+
+
        
     /* initialize tuner device */
     if(Tuner_Init())
@@ -1120,6 +1343,7 @@ void* streamControllerTask(argStruct* arg_struct)
         printf("\n%s : ERROR Tuner_Init() fail\n", __FUNCTION__);
         free(patTable);
         free(pmtTable);
+	free(sdtTable);
         return (void*) SC_ERROR;
     }
     
@@ -1139,6 +1363,7 @@ void* streamControllerTask(argStruct* arg_struct)
         printf("\n%s: ERROR Tuner_Lock_To_Frequency(): %d Hz - fail!\n",__FUNCTION__,arg_struct->frequency);
         free(patTable);
         free(pmtTable);
+	free(sdtTable);
         Tuner_Deinit();
         return (void*) SC_ERROR;
     }
@@ -1150,6 +1375,7 @@ void* streamControllerTask(argStruct* arg_struct)
         printf("\n%s : ERROR Lock timeout exceeded!\n",__FUNCTION__);
         free(patTable);
         free(pmtTable);
+	free(sdtTable);
         Tuner_Deinit();
         return (void*) SC_ERROR;
     }
@@ -1160,8 +1386,9 @@ void* streamControllerTask(argStruct* arg_struct)
     {
 		printf("\n%s : ERROR Player_Init() fail\n", __FUNCTION__);
 		free(patTable);
-        free(pmtTable);
-        Tuner_Deinit();
+        	free(pmtTable);
+		free(sdtTable);
+        	Tuner_Deinit();
         return (void*) SC_ERROR;
 	}
 	
@@ -1170,7 +1397,8 @@ void* streamControllerTask(argStruct* arg_struct)
     {
 		printf("\n%s : ERROR Player_Source_Open() fail\n", __FUNCTION__);
 		free(patTable);
-        free(pmtTable);
+        	free(pmtTable);
+		free(sdtTable);
 		Player_Deinit(playerHandle);
         Tuner_Deinit();
         return (void*) SC_ERROR;	
@@ -1192,8 +1420,9 @@ void* streamControllerTask(argStruct* arg_struct)
 	if (ETIMEDOUT == pthread_cond_wait(&demuxCond, &demuxMutex))
 	{
 		printf("\n%s:ERROR Lock timeout exceeded!\n", __FUNCTION__);
-        free(patTable);
-        free(pmtTable);
+		free(patTable);
+		free(pmtTable);
+		free(sdtTable);
 		Player_Deinit(playerHandle);
         Tuner_Deinit();
         return (void*) SC_ERROR;
@@ -1252,6 +1481,63 @@ int32_t sectionReceivedCallback(uint8_t *buffer)
 		    pthread_mutex_unlock(&demuxMutex);
         }
     }
+    else if (tableId==0x42)
+	{
+		printf("\n%s -----SDT TABLE ARRIVED-----\n",__FUNCTION__);
+        
+        if(parseSdtTable(buffer,sdtTable)==TABLES_PARSE_OK)
+        {
+		/*printf("Provider 1. name:%s\n",sdtTable->sdtElementaryInfoArray[0].descriptor.providerName);
+		printf("Service 1. name:%s\n",sdtTable->sdtElementaryInfoArray[0].descriptor.serviceName);
+		printf("Provider 2. name:%s\n",sdtTable->sdtElementaryInfoArray[1].descriptor.providerName);		
+		printf("Service 2. name:%s\n",sdtTable->sdtElementaryInfoArray[1].descriptor.serviceName);	
+		printf("Provider 3. name:%s\n",sdtTable->sdtElementaryInfoArray[2].descriptor.providerName);
+		printf("Service 3. name:%s\n",sdtTable->sdtElementaryInfoArray[2].descriptor.serviceName);
+		printf("Provider 4. name:%s\n",sdtTable->sdtElementaryInfoArray[3].descriptor.providerName);		
+		printf("Service 4. name:%s\n",sdtTable->sdtElementaryInfoArray[3].descriptor.serviceName);
+		printf("Provider 5. name:%s\n",sdtTable->sdtElementaryInfoArray[4].descriptor.providerName);
+		printf("Service 5. name:%s\n",sdtTable->sdtElementaryInfoArray[4].descriptor.serviceName);
+		printf("Provider 6. name:%s\n",sdtTable->sdtElementaryInfoArray[5].descriptor.providerName);		
+		printf("Service 6. name:%s\n",sdtTable->sdtElementaryInfoArray[5].descriptor.serviceName);
+		printf("Provider 7. name:%s\n",sdtTable->sdtElementaryInfoArray[6].descriptor.providerName);		
+		printf("Service 7. name:%s\n",sdtTable->sdtElementaryInfoArray[6].descriptor.serviceName);
+		*/
+		int i;
+		for(i=0;i<7;i++){
+			channelList[i].number = i + 1;
+			strcpy(channelList[i].providerName,sdtTable->sdtElementaryInfoArray[i].descriptor.providerName);
+			strcpy(channelList[i].serviceName,sdtTable->sdtElementaryInfoArray[i].descriptor.serviceName);
+
+			/*printf("Number :%d\n",channelList[i].number);
+			printf("Provider :%s\n",channelList[i].providerName);
+			printf("Service :%s\n",channelList[i].serviceName);*/
+
+		}
+
+		/*
+		channelList[0].number = 1;
+		strcpy(channelList[0].providerName,sdtTable->sdtElementaryInfoArray[0].descriptor.providerName);
+		strcpy(channelList[0].serviceName,sdtTable->sdtElementaryInfoArray[0].descriptor.serviceName);
+
+		printf("Number :%d\n",channelList[0].number);
+		printf("Provider :%s\n",channelList[0].providerName);
+		printf("Service :%s\n",channelList[0].serviceName);
+		*/
+		
+		
+            //printPatTable(patTable);
+            pthread_mutex_lock(&demuxMutex);
+		    pthread_cond_signal(&demuxCond);
+		    pthread_mutex_unlock(&demuxMutex);
+	
+            
+        }
+		
+	}
+
+
+
+
     return 0;
 }
 

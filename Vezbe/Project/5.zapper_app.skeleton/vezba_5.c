@@ -240,6 +240,10 @@ void remoteControllerCallback(uint16_t code, uint16_t type, uint32_t value)
 		        printf("\nMUTE pressed\n");
             		mute();
 			break;
+		case KEYCODE_EPG:
+		        printf("\nEPG pressed\n");
+            		epg();
+			break;
 		case KEYCODE_EXIT:
 			printf("\nExit pressed\n");
             pthread_mutex_lock(&deinitMutex);

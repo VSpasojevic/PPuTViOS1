@@ -49,6 +49,16 @@ typedef struct _ChannelInfo
     int16_t videoPid;
 }ChannelInfo;
 
+
+typedef struct _ChannelList{
+
+	uint8_t number;
+	char providerName[10];
+	char serviceName[10];
+
+}ChannelList;
+
+
 /**
  * @brief Initializes stream controller module
  *

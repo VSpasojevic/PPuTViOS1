@@ -24,6 +24,7 @@
 #define KEYCODE_CH6 7
 #define KEYCODE_CH7 8
 #define KEYCODE_MUTE 60
+#define KEYCODE_EPG 217
 
 /* input event values for 'EV_KEY' type */
 #define EV_VALUE_RELEASE    0
