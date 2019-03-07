@@ -67,13 +67,14 @@ static DFBRegion programInfoBannerRegion;
 static DFBRegion programVolumeRegion;
 static DFBRegion programListRegion;
 
+bool muteFlag = true;
 
 bool txt = false;
 int32_t ret;
-
+static currentFlag;
 
 static uint32_t volumeNumber = 0;
-
+static uint32_t currentNumber = 0;
 
 static struct itimerspec timerSpec;
 static struct itimerspec timerSpecOld;
@@ -88,7 +89,6 @@ static struct timespec lockStatusWaitTime;
 static struct timeval now;
 static pthread_t scThread;
 static pthread_t drawThread;
-static pthread_t drawVolThread;
 
 static pthread_cond_t demuxCond = PTHREAD_COND_INITIALIZER;
 static pthread_mutex_t demuxMutex = PTHREAD_MUTEX_INITIALIZER;
@@ -106,12 +106,12 @@ void wipeListScreen(){
 
 
 	 /* clear screen */
-   	 DFBCHECK(primary->SetColor(primary, 0x00, 0x00, 0x00, 0x00));
-    	 DFBCHECK(primary->FillRectangle(primary, 0, 0, screenWidth, screenHeight));
+   		DFBCHECK(primary->SetColor(primary, 0x00, 0x00, 0x00, 0x00));
+     	DFBCHECK(primary->FillRectangle(primary, 0, 0, screenWidth, screenHeight));
 
 	//screenWidth*3/4, 0, screenWidth, screenHeight*3/4 sredi sve
 	//set for region
-	    DFBCHECK(primary->SetColor(primary, 0x00, 0x00, 0x00, 0xff));
+		DFBCHECK(primary->SetColor(primary, 0x00, 0x00, 0x00, 0xff));
 	    DFBCHECK(primary->FillRectangle(primary, screenWidth*3/4, 0, screenWidth, screenHeight*3/4));
 	    
 
@@ -121,18 +121,18 @@ void wipeListScreen(){
 	    programListRegion.x2 = screenWidth;
 	    programListRegion.y2 = screenHeight*3/4;
 
-	    /* update screen */
+	/* update screen */
 	    DFBCHECK(primary->Flip(primary, &programListRegion, 0));
 	    
-	    /* stop the timer */
+	/* stop the timer */
 	    memset(&timerSpecList,0,sizeof(timerSpecList));
 	    ret = timer_settime(timerListId,0,&timerSpecList,&timerSpecOldList);
 	    if(ret == -1){
-		printf("Error setting timer in %s!\n", __FUNCTION__);
+			printf("Error setting timer in %s!\n", __FUNCTION__);
 	    }
 
 
-	printf("RADIO WIPE LIST\n");
+		printf("RADIO WIPE LIST\n");
 
 
 
@@ -163,23 +163,22 @@ void wipeListScreen(){
 	}
 
 }
+
+
 void wipeVolScreen(){
 
 
 	if(currentChannel.videoPid == -1){
 
 	 /* clear screen */
-   	 DFBCHECK(primary->SetColor(primary, 0x00, 0x00, 0x00, 0x00));
-    	 DFBCHECK(primary->FillRectangle(primary, 0, 0, screenWidth, screenHeight));
-
+   	 	DFBCHECK(primary->SetColor(primary, 0x00, 0x00, 0x00, 0x00));
+    	DFBCHECK(primary->FillRectangle(primary, 0, 0, screenWidth, screenHeight));
 
 	//set for region
 	    DFBCHECK(primary->SetColor(primary, 0x00, 0x00, 0x00, 0xff));
 	    DFBCHECK(primary->FillRectangle(primary, screenWidth/10, screenHeight/10, screenWidth/10 + 200, screenHeight/10 +200));
 	    
-
-
-	    programVolumeRegion.x1 = screenWidth/10;
+		programVolumeRegion.x1 = screenWidth/10;
 	    programVolumeRegion.y1 = screenHeight/10; 
 	    programVolumeRegion.x2 = screenWidth/10 + 200;
 	    programVolumeRegion.y2 = screenHeight/10 + 200;
@@ -191,23 +190,18 @@ void wipeVolScreen(){
 	    memset(&timerSpecVol,0,sizeof(timerSpecVol));
 	    ret = timer_settime(timerVolId,0,&timerSpecVol,&timerSpecOldVol);
 	    if(ret == -1){
-		printf("Error setting timer in %s!\n", __FUNCTION__);
+			printf("Error setting timer in %s!\n", __FUNCTION__);
 	    }
-
 
 	printf("RADIO WIPE VOL\n");
 
-
-
 	}else{
 
- 	/* clear screen */
-	//set for region
+ 		/* clear screen */
+		//set for region
 	    DFBCHECK(primary->SetColor(primary, 0x00, 0x00, 0x00, 0x00));
 	    DFBCHECK(primary->FillRectangle(primary, screenWidth/10, screenHeight/10, screenWidth/10 + 200, screenHeight/10 +200));
-	    
-
-
+	   
 	    programVolumeRegion.x1 = screenWidth/10;
 	    programVolumeRegion.y1 = screenHeight/10; 
 	    programVolumeRegion.x2 = screenWidth/10 + 200;
@@ -232,17 +226,11 @@ void wipeScreen(/*union sigval signalArg*/){
     int32_t ret;
 
     if(currentChannel.videoPid == -1){
-	printf("VIDEO PID -1 u WIPE\n");
+		printf("VIDEO PID -1 u WIPE\n");
 	    /* clear screen */
 	    DFBCHECK(primary->SetColor(primary, 0x00, 0x00, 0x00, 0xff));
 	    DFBCHECK(primary->FillRectangle(primary, 0, screenHeight*5/6, screenWidth, screenHeight/6));
 
-	    /* generate keycode string for channel*/
-		/*sprintf(keycodeString,"%s","RADIO ");
-
-	DFBCHECK(primary->SetColor(primary, 0xff, 0xff, 0xff, 0x55));
-	DFBCHECK(primary->DrawString(primary, keycodeString, -1, screenWidth/3, screenHeight/6, DSTF_CENTER));
-*/
 	    programInfoBannerRegion.x1 = 0;
 	    programInfoBannerRegion.y1 = screenHeight*5/6; 
 	    programInfoBannerRegion.x2 = screenWidth;
@@ -286,20 +274,15 @@ void wipeScreen(/*union sigval signalArg*/){
 
 
 
-uint16_t initRb(){
+uint16_t initDFB(){
 	DFBSurfaceDescription surfaceDesc;
 	DFBFontDescription fontDesc;
 	IDirectFBFont *fontInterface = NULL;
-	//0, screenHeight*5/6, screenWidth, screenHeight/6
-
-	
-	
 
 	/* structure for timer specification */
-        struct sigevent signalEvent;
-        struct sigevent signalEventVol;
+    struct sigevent signalEvent;
+    struct sigevent signalEventVol;
 	struct sigevent signalEventList;
-
 
 	int32_t ret;
 	
@@ -310,7 +293,7 @@ uint16_t initRb(){
 	DFBCHECK(dfbInterface->SetCooperativeLevel(dfbInterface, DFSCL_FULLSCREEN));
 	printf("\n/* initialize DirectFB */\n");
 	
-    	/* create primary surface with double buffering enabled */
+    /* create primary surface with double buffering enabled */
     
 	surfaceDesc.flags = DSDESC_CAPS;
 	surfaceDesc.caps = DSCAPS_PRIMARY | DSCAPS_FLIPPING;
@@ -318,12 +301,12 @@ uint16_t initRb(){
 	printf("\n/* create primary surface with double buffering enabled */\n");
     
     
-    	/* fetch the screen size */
-    	DFBCHECK (primary->GetSize(primary, &screenWidth, &screenHeight));
+    /* fetch the screen size */
+    DFBCHECK (primary->GetSize(primary, &screenWidth, &screenHeight));
 	printf("\n/* fetch the screen size */\n");
 	printf("\nSirina ekrana: %d, Visina ekrana: %d \n",screenWidth, screenHeight);
     
-       	/* draw keycode */
+    /* draw keycode */
     
 	fontDesc.flags = DFDESC_HEIGHT;
 	fontDesc.height = FONT_HEIGHT;
@@ -352,7 +335,7 @@ uint16_t initRb(){
         return 0;
     }
 
-/* create timer2 */
+	/* create timer2 */
     signalEventVol.sigev_notify = SIGEV_THREAD; /* tell the OS to notify you about timer by calling the specified function */
     signalEventVol.sigev_notify_function = wipeVolScreen; /* function to be called when timer runs out */
     signalEventVol.sigev_value.sival_ptr = NULL; /* thread arguments */
@@ -362,8 +345,6 @@ uint16_t initRb(){
                        /*where to store the ID of the newly created timer*/&timerVolId);
 
 	printf("\n/* create timer2 %d */\n",ret);
-	
-
 
     if(ret == -1){
         printf("Error creating timer, abort!\n");
@@ -383,8 +364,6 @@ uint16_t initRb(){
                        /*where to store the ID of the newly created timer*/&timerListId);
 
 	printf("\n/* create timer3 %d */\n",ret);
-	
-
 
     if(ret == -1){
         printf("Error creating timer, abort!\n");
@@ -394,14 +373,13 @@ uint16_t initRb(){
         return 0;
     }
 
-
-
 }
 
-void deinitRB(){
+void deinitDFB(){
 	timer_delete(timerId);
-
 	timer_delete(timerVolId);
+	timer_delete(timerListId);
+
 	primary->Release(primary);
 	dfbInterface->Release(dfbInterface);
 	printf("\n/* clean up */\n");
@@ -411,16 +389,17 @@ void* drawingEpg(){
 	
 	printf("DRAWING EPG\n");
     
-	
-
+	programListRegion.x1 = screenWidth*3/4;
+	programListRegion.y1 = 0; 
+	programListRegion.x2 = screenWidth;
+	programListRegion.y2 = screenHeight*3/4;
 
 	if(currentChannel.videoPid == -1){
 		printf("\n\n!!!!RADIO!!!\n\n");
 
-
 	/* clear screen */
-   	 DFBCHECK(primary->SetColor(primary, 0x00, 0x00, 0x00, 0xff));
-    	 DFBCHECK(primary->FillRectangle(primary, 0, 0, screenWidth, screenHeight));
+   	DFBCHECK(primary->SetColor(primary, 0x00, 0x00, 0x00, 0xff));
+    DFBCHECK(primary->FillRectangle(primary, 0, 0, screenWidth, screenHeight));
 
 
 	/* generate keycode string for channel*/
@@ -429,17 +408,14 @@ void* drawingEpg(){
 	DFBCHECK(primary->SetColor(primary, 0xff, 0xff, 0xff, 0x55));
 	DFBCHECK(primary->DrawString(primary, keycodeString, -1, screenWidth/3, screenHeight/6, DSTF_CENTER));
 
-
-
 	DFBCHECK(primary->SetColor(primary, 0x00, 0x10, 0x80, 0xff));
 	DFBCHECK(primary->FillRectangle(primary, screenWidth*3/4, 0, screenWidth, screenHeight*3/4));
-
 
 	/* generate keycode string for channel*/
 	sprintf(keycodeString,"%s"," CHANNEL LIST");
 
 	DFBCHECK(primary->SetColor(primary, 0xff, 0xff, 0xff, 0x55));
-	DFBCHECK(primary->DrawString(primary, keycodeString, -1, 1700, 50, DSTF_CENTER));
+	DFBCHECK(primary->DrawString(primary, keycodeString, -1, 1650, 50, DSTF_CENTER));
 
 	sprintf(keycodeString,"%s"," CH1");
 
@@ -454,7 +430,6 @@ void* drawingEpg(){
 
 	DFBCHECK(primary->SetColor(primary, 0xff, 0xff, 0xff, 0x55));
 	DFBCHECK(primary->DrawString(primary, keycodeString, -1, 1700, 150, DSTF_CENTER));
-
 
 	sprintf(keycodeString,"%s"," CH2");
 
@@ -540,47 +515,39 @@ void* drawingEpg(){
 	DFBCHECK(primary->SetColor(primary, 0xff, 0xff, 0xff, 0x55));
 	DFBCHECK(primary->DrawString(primary, keycodeString, -1, 1700, 750, DSTF_CENTER));
 
-
-
     /* switch between the displayed and the work buffer (update the display) */
 	DFBCHECK(primary->Flip(primary,
-                           /*region to be updated, NULL for the whole surface*/NULL,
+                           /*region to be updated, NULL for the whole surface*/&programListRegion,
                            /*flip flags*/0));
-
-
 
 	/* set the timer for clearing the screen */
     
-    	memset(&timerSpecList,0,sizeof(timerSpecList));
+    memset(&timerSpecList,0,sizeof(timerSpecList));
     
-    	/* specify the timer timeout time */
-    	timerSpecList.it_value.tv_sec = 5;
-    	timerSpecList.it_value.tv_nsec = 0;
+    /* specify the timer timeout time */
+    timerSpecList.it_value.tv_sec = 5;
+    timerSpecList.it_value.tv_nsec = 0;
     
-    	/* set the new timer specs */
-    	ret = timer_settime(timerListId,0,&timerSpecList,&timerSpecOldList);
-    	if(ret == -1){
-        	printf("Error setting timer in %s!\n", __FUNCTION__);
-    	}
+    /* set the new timer specs */
+    ret = timer_settime(timerListId,0,&timerSpecList,&timerSpecOldList);
+		if(ret == -1){
+		   	printf("Error setting timer in %s!\n", __FUNCTION__);
+		}
 
-    
-	
-    
 	}else{
 
 	/* clear screen */
-   	 DFBCHECK(primary->SetColor(primary, 0x00, 0x00, 0x00, 0x00));
-    	 DFBCHECK(primary->FillRectangle(primary, 0, 0, screenWidth, screenHeight));
+	DFBCHECK(primary->SetColor(primary, 0x00, 0x00, 0x00, 0x00));
+    DFBCHECK(primary->FillRectangle(primary, 0, 0, screenWidth, screenHeight));
 
 	DFBCHECK(primary->SetColor(primary, 0x00, 0x10, 0x80, 0x55));
 	DFBCHECK(primary->FillRectangle(primary, screenWidth*3/4, 0, screenWidth, screenHeight*3/4));
 
-
 	/* generate keycode string for channel*/
 	sprintf(keycodeString,"%s"," CHANNEL LIST");
 
 	DFBCHECK(primary->SetColor(primary, 0xff, 0xff, 0xff, 0x55));
-	DFBCHECK(primary->DrawString(primary, keycodeString, -1, 1700, 50, DSTF_CENTER));
+	DFBCHECK(primary->DrawString(primary, keycodeString, -1, 1650, 50, DSTF_CENTER));
 
 	sprintf(keycodeString,"%s"," CH1");
 
@@ -595,7 +562,6 @@ void* drawingEpg(){
 
 	DFBCHECK(primary->SetColor(primary, 0xff, 0xff, 0xff, 0x55));
 	DFBCHECK(primary->DrawString(primary, keycodeString, -1, 1700, 150, DSTF_CENTER));
-
 
 	sprintf(keycodeString,"%s"," CH2");
 
@@ -681,30 +647,26 @@ void* drawingEpg(){
 	DFBCHECK(primary->SetColor(primary, 0xff, 0xff, 0xff, 0x55));
 	DFBCHECK(primary->DrawString(primary, keycodeString, -1, 1700, 750, DSTF_CENTER));
 
-
-
     /* switch between the displayed and the work buffer (update the display) */
 	DFBCHECK(primary->Flip(primary,
-                           /*region to be updated, NULL for the whole surface*/NULL,
+                           /*region to be updated, NULL for the whole surface*/&programListRegion,
                            /*flip flags*/0));
 
-
-
-/* set the timer for clearing the screen */
+	/* set the timer for clearing the screen */
     
-    	memset(&timerSpecList,0,sizeof(timerSpecList));
+   	memset(&timerSpecList,0,sizeof(timerSpecList));
     
-    	/* specify the timer timeout time */
-    	timerSpecList.it_value.tv_sec = 5;
-    	timerSpecList.it_value.tv_nsec = 0;
+   	/* specify the timer timeout time */
+   	timerSpecList.it_value.tv_sec = 5;
+   	timerSpecList.it_value.tv_nsec = 0;
     
-    	/* set the new timer specs */
-    	ret = timer_settime(timerListId,0,&timerSpecList,&timerSpecOldList);
+   	/* set the new timer specs */
+   	ret = timer_settime(timerListId,0,&timerSpecList,&timerSpecOldList);
     	if(ret == -1){
         	printf("Error setting timer in %s!\n", __FUNCTION__);
-	}
+		}
     
-}
+	}
 
 }
 
@@ -719,14 +681,17 @@ void* drawingVol(){
 	int32_t logoHeight, logoWidth;
 	DFBSurfaceDescription surfaceDesc;
 
+	programVolumeRegion.x1 = screenWidth/10;
+	programVolumeRegion.y1 = screenHeight/10; 
+	programVolumeRegion.x2 = screenWidth/10 + 200;
+	programVolumeRegion.y2 = screenHeight/10 + 200;
 
 	if(currentChannel.videoPid == -1){
 		printf("\n\n!!!!RADIO!!!\n\n");
 
-
 	/* clear screen */
    	 DFBCHECK(primary->SetColor(primary, 0x00, 0x00, 0x00, 0xff));
-    	 DFBCHECK(primary->FillRectangle(primary, 0, 0, screenWidth, screenHeight));
+   	 DFBCHECK(primary->FillRectangle(primary, 0, 0, screenWidth, screenHeight));
 
 	/* generate keycode string for channel*/
 	sprintf(keycodeString,"%s","RADIO ");
@@ -777,13 +742,7 @@ void* drawingVol(){
 		default:
 			printf("WRONG VOL\n");
 			break;
-
-
 	}
-
-
-
-
 
 	/* create the image provider for the specified file */
 	//DFBCHECK(dfbInterface->CreateImageProvider(dfbInterface, "volume_1.png", &provider));
@@ -808,19 +767,19 @@ void* drawingVol(){
 
     /* switch between the displayed and the work buffer (update the display) */
 	DFBCHECK(primary->Flip(primary,
-                           /*region to be updated, NULL for the whole surface*/NULL,
+                           /*region to be updated, NULL for the whole surface*/&programVolumeRegion,
                            /*flip flags*/0));
     
 	/* set the timer for clearing the screen */
     
-    	memset(&timerSpecVol,0,sizeof(timerSpecVol));
+    memset(&timerSpecVol,0,sizeof(timerSpecVol));
     
-    	/* specify the timer timeout time */
-    	timerSpecVol.it_value.tv_sec = 5;
-    	timerSpecVol.it_value.tv_nsec = 0;
+    /* specify the timer timeout time */
+    timerSpecVol.it_value.tv_sec = 5;
+    timerSpecVol.it_value.tv_nsec = 0;
     
-    	/* set the new timer specs */
-    	ret = timer_settime(timerVolId,0,&timerSpecVol,&timerSpecOldVol);
+    /* set the new timer specs */
+    ret = timer_settime(timerVolId,0,&timerSpecVol,&timerSpecOldVol);
     	if(ret == -1){
         	printf("Error setting timer in %s!\n", __FUNCTION__);
     	}
@@ -828,8 +787,8 @@ void* drawingVol(){
 	}else{
 
 	/* clear screen */
-   	 DFBCHECK(primary->SetColor(primary, 0x00, 0x00, 0x00, 0x00));
-    	 DFBCHECK(primary->FillRectangle(primary, 0, 0, screenWidth, screenHeight));
+   	DFBCHECK(primary->SetColor(primary, 0x00, 0x00, 0x00, 0x00));
+    DFBCHECK(primary->FillRectangle(primary, 0, 0, screenWidth, screenHeight));
 
 	printf("VOL flag: %d\n",volFlag);
 	switch(volFlag){
@@ -900,23 +859,23 @@ void* drawingVol(){
 
     /* switch between the displayed and the work buffer (update the display) */
 	DFBCHECK(primary->Flip(primary,
-                           /*region to be updated, NULL for the whole surface*/NULL,
+                           /*region to be updated, NULL for the whole surface*/&programVolumeRegion,
                            /*flip flags*/0));
     
 	/* set the timer for clearing the screen */
     
-    	memset(&timerSpecVol,0,sizeof(timerSpecVol));
+    memset(&timerSpecVol,0,sizeof(timerSpecVol));
     
-    	/* specify the timer timeout time */
-    	timerSpecVol.it_value.tv_sec = 5;
-    	timerSpecVol.it_value.tv_nsec = 0;
+    /* specify the timer timeout time */
+    timerSpecVol.it_value.tv_sec = 5;
+    timerSpecVol.it_value.tv_nsec = 0;
     
-    	/* set the new timer specs */
-    	ret = timer_settime(timerVolId,0,&timerSpecVol,&timerSpecOldVol);
+    /* set the new timer specs */
+    ret = timer_settime(timerVolId,0,&timerSpecVol,&timerSpecOldVol);
     	if(ret == -1){
         	printf("Error setting timer in %s!\n", __FUNCTION__);
     	}
-}
+	}
 
 }
 
@@ -926,9 +885,9 @@ void* drawingBanner(){
 	if(currentChannel.videoPid == -1){
 	printf("\n\n!!!!RADIO!!!\n\n");
 
-	 /* clear screen */
-   	 DFBCHECK(primary->SetColor(primary, 0x00, 0x00, 0x00, 0xff));
-    	 DFBCHECK(primary->FillRectangle(primary, 0, 0, screenWidth, screenHeight));
+	/* clear screen */
+   	DFBCHECK(primary->SetColor(primary, 0x00, 0x00, 0x00, 0xff));
+    DFBCHECK(primary->FillRectangle(primary, 0, 0, screenWidth, screenHeight));
 
 	/* generate keycode string for channel*/
 	sprintf(keycodeString,"%s","RADIO ");
@@ -936,17 +895,14 @@ void* drawingBanner(){
 	DFBCHECK(primary->SetColor(primary, 0xff, 0xff, 0xff, 0x55));
 	DFBCHECK(primary->DrawString(primary, keycodeString, -1, screenWidth/3, screenHeight/6, DSTF_CENTER));
 
-
 	DFBCHECK(primary->SetColor(primary, 0x00, 0x10, 0x80, 0xff));
 	DFBCHECK(primary->FillRectangle(primary, 0, screenHeight*5/6, screenWidth, screenHeight/6));
 	
-
 	/* generate keycode string for channel*/
 	sprintf(keycodeString,"%s","CH: ");
 
 	DFBCHECK(primary->SetColor(primary, 0xff, 0xff, 0xff, 0xff));
 	DFBCHECK(primary->DrawString(primary, keycodeString, -1, screenWidth/16, screenHeight*11/12, DSTF_CENTER));
-
 
 	/* generate keycode string for chnannel number */
 	sprintf(keycodeString,"%d",(currentChannel.programNumber));
@@ -960,7 +916,6 @@ void* drawingBanner(){
 	DFBCHECK(primary->SetColor(primary, 0xff, 0xff, 0xff, 0xff));
 	DFBCHECK(primary->DrawString(primary, keycodeString, -1, screenWidth/6, screenHeight*11/12, DSTF_CENTER));
 
-	
 	/* generate keycode string for AudioPid number */
 	sprintf(keycodeString,"%d", currentChannel.audioPid);
 
@@ -994,47 +949,39 @@ void* drawingBanner(){
 		DFBCHECK(primary->SetColor(primary, 0xff, 0xff, 0xff, 0xff));
 		DFBCHECK(primary->DrawString(primary, "NO", -1, screenWidth/2+120, screenHeight*11/12, DSTF_CENTER));
 	}	
+	    
+	/* update screen */
+    DFBCHECK(primary->Flip(primary, NULL, 0));
 
-
-	
-    
-	 /* update screen */
-    	 DFBCHECK(primary->Flip(primary, NULL, 0));
-
-	
 	/* set the timer for clearing the screen */
     
-    	memset(&timerSpec,0,sizeof(timerSpec));
+    memset(&timerSpec,0,sizeof(timerSpec));
     
-    	/* specify the timer timeout time */
-    	timerSpec.it_value.tv_sec = 3;
-    	timerSpec.it_value.tv_nsec = 0;
+    /* specify the timer timeout time */
+    timerSpec.it_value.tv_sec = 3;
+    timerSpec.it_value.tv_nsec = 0;
     
-    	/* set the new timer specs */
-    	ret = timer_settime(timerId,0,&timerSpec,&timerSpecOld);
+    /* set the new timer specs */
+    ret = timer_settime(timerId,0,&timerSpec,&timerSpecOld);
     	if(ret == -1){
         	printf("Error setting timer in %s!\n", __FUNCTION__);
     	}
 	
-
 	}else{
 	
-
-	 /* clear screen */
-   	 DFBCHECK(primary->SetColor(primary, 0x00, 0x00, 0x00, 0x00));
-    	 DFBCHECK(primary->FillRectangle(primary, 0, 0, screenWidth, screenHeight));
+	/* clear screen */
+   	DFBCHECK(primary->SetColor(primary, 0x00, 0x00, 0x00, 0x00));
+   	DFBCHECK(primary->FillRectangle(primary, 0, 0, screenWidth, screenHeight));
 
 	DFBCHECK(primary->SetColor(primary, 0x00, 0x10, 0x80, 0xff));
 	DFBCHECK(primary->FillRectangle(primary, 0, screenHeight*5/6, screenWidth, screenHeight/6));
 	printf("\n\n!!!!ISCRTAVANJE!!!\n\n");
 
-	/*-----------------------------------------------------------------------------------*/
 	/* generate keycode string for channel*/
 	sprintf(keycodeString,"%s","CH: ");
 
 	DFBCHECK(primary->SetColor(primary, 0xff, 0xff, 0xff, 0xff));
 	DFBCHECK(primary->DrawString(primary, keycodeString, -1, screenWidth/16, screenHeight*11/12, DSTF_CENTER));
-
 
 	/* generate keycode string for chnannel number */
 	sprintf(keycodeString,"%d",(currentChannel.programNumber));
@@ -1047,7 +994,6 @@ void* drawingBanner(){
 
 	DFBCHECK(primary->SetColor(primary, 0xff, 0xff, 0xff, 0xff));
 	DFBCHECK(primary->DrawString(primary, keycodeString, -1, screenWidth/6, screenHeight*11/12, DSTF_CENTER));
-
 	
 	/* generate keycode string for AudioPid number */
 	sprintf(keycodeString,"%d", currentChannel.audioPid);
@@ -1085,18 +1031,17 @@ void* drawingBanner(){
 
 	/* update screen */ 
 	DFBCHECK(primary->Flip(primary, NULL, 0));
-	//printf("\n\n!!!!IZMENA EKRANA!!!\n\n");   
     
-    	/* set the timer for clearing the screen */
+    /* set the timer for clearing the screen */
     
-    	memset(&timerSpec,0,sizeof(timerSpec));
+    memset(&timerSpec,0,sizeof(timerSpec));
     
-    	/* specify the timer timeout time */
-    	timerSpec.it_value.tv_sec = 3;
-    	timerSpec.it_value.tv_nsec = 0;
+    /* specify the timer timeout time */
+    timerSpec.it_value.tv_sec = 3;
+    timerSpec.it_value.tv_nsec = 0;
     
-    	/* set the new timer specs */
-    	ret = timer_settime(timerId,0,&timerSpec,&timerSpecOld);
+    /* set the new timer specs */
+    ret = timer_settime(timerId,0,&timerSpec,&timerSpecOld);
     	if(ret == -1){
         	printf("Error setting timer in %s!\n", __FUNCTION__);
     	}
@@ -1117,17 +1062,8 @@ StreamControllerError streamControllerInit(argStruct* arg_struct)
 	argVideoType = arg_struct->videoType;
 	argAudioType = arg_struct->audioType;
 	
+	initDFB();
 	
-	initRb();
-	//test
-	//alocate memory for list structure
-	
-	//channelList = (ChannelList) malloc(sizeof(ChannelList));
-	
-
-	
-
-
     if (pthread_create(&scThread, NULL, &streamControllerTask, arg_struct))
     {
         printf("Error creating input event task!\n");
@@ -1175,11 +1111,10 @@ StreamControllerError streamControllerDeinit()
     free(pmtTable);
     free(sdtTable);
     
-    
     /* set isInitialized flag */
     isInitialized = false;
 
-    deinitRB();
+    deinitDFB();
 
     return SC_NO_ERROR;
 }
@@ -1197,10 +1132,8 @@ StreamControllerError epg()
 		printf("Service :%s\n",channelList[i].serviceName);
 	}
 	
-	
 	drawingEpg();
 
-    
     return SC_NO_ERROR;
 }
 
@@ -1208,41 +1141,45 @@ StreamControllerError volumeUp()
 {   
 	//107374182
 
-	volFlag++;
-	Player_Volume_Set(playerHandle,volumeNumber + (VOL_MAX/10));
-	Player_Volume_Get(playerHandle,&volumeNumber);
-	if(volumeNumber > VOL_MAX){
-		volFlag = 10;
-		volumeNumber = VOL_MAX;
-		Player_Volume_Set(playerHandle,volumeNumber);
+	if(muteFlag == false){
+		muteFlag = true;
+		volFlag = 1;
+		Player_Volume_Set(playerHandle,(VOL_MAX/10));
 		Player_Volume_Get(playerHandle,&volumeNumber);
+
+	}else{
+		volFlag++;
+		Player_Volume_Set(playerHandle,volumeNumber + (VOL_MAX/10));
+		Player_Volume_Get(playerHandle,&volumeNumber);
+		if(volumeNumber > VOL_MAX){
+			volFlag = 10;
+			volumeNumber = VOL_MAX;
+			Player_Volume_Set(playerHandle,volumeNumber);
+			Player_Volume_Get(playerHandle,&volumeNumber);
+		}
+
 	}
+
 	printf("VOL: %d\n",volumeNumber);
 	printf("VOL flag: %d\n",volFlag);
 	drawingVol();
-
-
-    
+	
     return SC_NO_ERROR;
 }
 
 
 StreamControllerError volumeDown()
 {   
-	
-
-	//Player_Volume_Get(playerHandle,&volumeNumber);
-	//printf("VOL1: %d\n",volumeNumber);	
-	if(volumeNumber <= 0 ){
-		volFlag = 0;
-		volumeNumber = 0;
-		Player_Volume_Set(playerHandle,volumeNumber);
-		Player_Volume_Get(playerHandle,&volumeNumber);
-	}else{
-		Player_Volume_Set(playerHandle,volumeNumber - (VOL_MAX/10));
-		Player_Volume_Get(playerHandle,&volumeNumber);
-		volFlag--;
-	}	
+		if(volumeNumber <= 0 ){
+			volFlag = 0;
+			volumeNumber = 0;
+			Player_Volume_Set(playerHandle,volumeNumber);
+			Player_Volume_Get(playerHandle,&volumeNumber);
+		}else{
+			Player_Volume_Set(playerHandle,volumeNumber - (VOL_MAX/10));
+			Player_Volume_Get(playerHandle,&volumeNumber);
+			volFlag--;
+		}	
 	printf("VOL: %d\n",volumeNumber);
 	printf("VOL flag: %d\n",volFlag);	
 	drawingVol();
@@ -1252,12 +1189,25 @@ StreamControllerError volumeDown()
 
 StreamControllerError mute()
 {   	
-	volFlag = 0;
-	//volumeNumber = 0;
-	Player_Volume_Set(playerHandle,0);	
-	Player_Volume_Get(playerHandle,&volumeNumber);
-	printf("VOL: %d\n",volumeNumber);
 	
+	if(muteFlag == true){
+		currentFlag = volFlag;
+		volFlag = 0;
+		Player_Volume_Get(playerHandle,&volumeNumber);
+		currentNumber = volumeNumber;
+		Player_Volume_Set(playerHandle,0);	
+		Player_Volume_Get(playerHandle,&volumeNumber);
+		printf("VOL: %d\n",volumeNumber);
+		muteFlag = false;
+	}else{
+		Player_Volume_Set(playerHandle,currentNumber);	
+		Player_Volume_Get(playerHandle,&volumeNumber);
+		printf("VOL: %d\n",volumeNumber);
+		volFlag = currentFlag;
+		muteFlag = true;
+	}
+	
+	printf("Mute Flag: %d\n",muteFlag);
 	drawingVol();
     return SC_NO_ERROR;
 }
@@ -1273,8 +1223,6 @@ StreamControllerError info()
     
     drawingBanner();	
     
-	
-
     return SC_NO_ERROR;
 }
 
@@ -1299,8 +1247,7 @@ StreamControllerError channelUp()
 StreamControllerError channel(int16_t number)
 {   
     
-        programNumber = number;
-    
+	programNumber = number;
 
     /* set flag to start current channel */
     changeChannel = true;
@@ -1340,16 +1287,12 @@ StreamControllerError getChannelInfo(ChannelInfo* channelInfo)
     return SC_NO_ERROR;
 }
 
-/* Sets filter to receive current channel PMT table
- * Parses current channel PMT table when it arrives
- * Creates streams with current channel audio and video pids
- */
 StreamControllerError startChannel(int32_t channelNumber)
 {
 
- /* clear screen */
-   	 DFBCHECK(primary->SetColor(primary, 0x00, 0x00, 0x00, 0x00));
-    	 DFBCHECK(primary->FillRectangle(primary, 0, 0, screenWidth, screenHeight));
+	/* clear screen */
+ 	DFBCHECK(primary->SetColor(primary, 0x00, 0x00, 0x00, 0x00));
+    DFBCHECK(primary->FillRectangle(primary, 0, 0, screenWidth, screenHeight));
 
     /* free PAT table filter */
     Demux_Free_Filter(playerHandle, filterHandle);
@@ -1369,16 +1312,13 @@ StreamControllerError startChannel(int32_t channelNumber)
         streamControllerDeinit();
 	}
 	pthread_mutex_unlock(&demuxMutex);
-    
    
- /* get audio and video pids */
+	/* get audio and video pids */
     int16_t audioPid = -1;
     int16_t videoPid = -1;	
     
     uint8_t i = 0;
     
-    
-
     for (i = 0; i < pmtTable->elementaryInfoCount; i++)
     {
         if (((pmtTable->pmtElementaryInfoArray[i].streamType == 0x1) || (pmtTable->pmtElementaryInfoArray[i].streamType == 0x2) || (pmtTable->pmtElementaryInfoArray[i].streamType == 0x1b))
@@ -1386,7 +1326,7 @@ StreamControllerError startChannel(int32_t channelNumber)
         {
 		//cheking video pid and type
 		         
-	   videoPid = pmtTable->pmtElementaryInfoArray[i].elementaryPid;
+	    videoPid = pmtTable->pmtElementaryInfoArray[i].elementaryPid;
 		printf("VIDEO PID from PMT: %d\n",videoPid);
 		printf("First video: %d\n",firstV);
 
@@ -1474,7 +1414,7 @@ StreamControllerError startChannel(int32_t channelNumber)
 	/* remove previous video stream */
 	if (streamHandleV != 0)
 		{
-			    Player_Stream_Remove(playerHandle, sourceHandle, streamHandleV);
+		    Player_Stream_Remove(playerHandle, sourceHandle, streamHandleV);
 		    streamHandleV = 0;
 			
 		}
@@ -1558,7 +1498,7 @@ void* streamControllerTask(argStruct* arg_struct)
 	}  
     memset(pmtTable, 0x0, sizeof(PmtTable));
 
-/***************************************** SDT TABLE *********************************/
+	/***************************************** SDT TABLE *********************************/
     /* allocate memory for SDT table section */
     sdtTable=(SdtTable*)malloc(sizeof(SdtTable));
     if(sdtTable==NULL)
@@ -1567,9 +1507,6 @@ void* streamControllerTask(argStruct* arg_struct)
         return (void*) SC_ERROR;
 	}  
     memset(sdtTable, 0x0, sizeof(SdtTable));
-
-
-
        
     /* initialize tuner device */
     if(Tuner_Init())
@@ -1577,7 +1514,7 @@ void* streamControllerTask(argStruct* arg_struct)
         printf("\n%s : ERROR Tuner_Init() fail\n", __FUNCTION__);
         free(patTable);
         free(pmtTable);
-	free(sdtTable);
+		free(sdtTable);
         return (void*) SC_ERROR;
     }
     
@@ -1597,7 +1534,7 @@ void* streamControllerTask(argStruct* arg_struct)
         printf("\n%s: ERROR Tuner_Lock_To_Frequency(): %d Hz - fail!\n",__FUNCTION__,arg_struct->frequency);
         free(patTable);
         free(pmtTable);
-	free(sdtTable);
+		free(sdtTable);
         Tuner_Deinit();
         return (void*) SC_ERROR;
     }
@@ -1609,7 +1546,7 @@ void* streamControllerTask(argStruct* arg_struct)
         printf("\n%s : ERROR Lock timeout exceeded!\n",__FUNCTION__);
         free(patTable);
         free(pmtTable);
-	free(sdtTable);
+		free(sdtTable);
         Tuner_Deinit();
         return (void*) SC_ERROR;
     }
@@ -1631,7 +1568,7 @@ void* streamControllerTask(argStruct* arg_struct)
     {
 		printf("\n%s : ERROR Player_Source_Open() fail\n", __FUNCTION__);
 		free(patTable);
-        	free(pmtTable);
+       	free(pmtTable);
 		free(sdtTable);
 		Player_Deinit(playerHandle);
         Tuner_Deinit();
@@ -1663,7 +1600,6 @@ void* streamControllerTask(argStruct* arg_struct)
 	}
 	pthread_mutex_unlock(&demuxMutex);
     
-
 	volFlag = 5;
 
 	printf("volNum1: %d\n",volumeNumber);
@@ -1681,7 +1617,7 @@ void* streamControllerTask(argStruct* arg_struct)
     {
         if (changeChannel)
         {
-            changeChannel = false;
+            changeChannel = false;	
             startChannel(programNumber);
         }
     }
@@ -1692,11 +1628,9 @@ int32_t sectionReceivedCallback(uint8_t *buffer)
     uint8_t tableId = *buffer;  
     if(tableId==0x00)
     {
-        //printf("\n%s -----PAT TABLE ARRIVED-----\n",__FUNCTION__);
         
         if(parsePatTable(buffer,patTable)==TABLES_PARSE_OK)
         {
-            //printPatTable(patTable);
             pthread_mutex_lock(&demuxMutex);
 		    pthread_cond_signal(&demuxCond);
 		    pthread_mutex_unlock(&demuxMutex);
@@ -1705,11 +1639,9 @@ int32_t sectionReceivedCallback(uint8_t *buffer)
     } 
     else if (tableId==0x02)
     {
-        //printf("\n%s -----PMT TABLE ARRIVED-----\n",__FUNCTION__);
         
         if(parsePmtTable(buffer,pmtTable)==TABLES_PARSE_OK)
         {
-            //printPmtTable(pmtTable);
             pthread_mutex_lock(&demuxMutex);
 		    pthread_cond_signal(&demuxCond);
 		    pthread_mutex_unlock(&demuxMutex);
@@ -1717,60 +1649,21 @@ int32_t sectionReceivedCallback(uint8_t *buffer)
     }
     else if (tableId==0x42)
 	{
-		printf("\n%s -----SDT TABLE ARRIVED-----\n",__FUNCTION__);
         
         if(parseSdtTable(buffer,sdtTable)==TABLES_PARSE_OK)
         {
-		/*printf("Provider 1. name:%s\n",sdtTable->sdtElementaryInfoArray[0].descriptor.providerName);
-		printf("Service 1. name:%s\n",sdtTable->sdtElementaryInfoArray[0].descriptor.serviceName);
-		printf("Provider 2. name:%s\n",sdtTable->sdtElementaryInfoArray[1].descriptor.providerName);		
-		printf("Service 2. name:%s\n",sdtTable->sdtElementaryInfoArray[1].descriptor.serviceName);	
-		printf("Provider 3. name:%s\n",sdtTable->sdtElementaryInfoArray[2].descriptor.providerName);
-		printf("Service 3. name:%s\n",sdtTable->sdtElementaryInfoArray[2].descriptor.serviceName);
-		printf("Provider 4. name:%s\n",sdtTable->sdtElementaryInfoArray[3].descriptor.providerName);		
-		printf("Service 4. name:%s\n",sdtTable->sdtElementaryInfoArray[3].descriptor.serviceName);
-		printf("Provider 5. name:%s\n",sdtTable->sdtElementaryInfoArray[4].descriptor.providerName);
-		printf("Service 5. name:%s\n",sdtTable->sdtElementaryInfoArray[4].descriptor.serviceName);
-		printf("Provider 6. name:%s\n",sdtTable->sdtElementaryInfoArray[5].descriptor.providerName);		
-		printf("Service 6. name:%s\n",sdtTable->sdtElementaryInfoArray[5].descriptor.serviceName);
-		printf("Provider 7. name:%s\n",sdtTable->sdtElementaryInfoArray[6].descriptor.providerName);		
-		printf("Service 7. name:%s\n",sdtTable->sdtElementaryInfoArray[6].descriptor.serviceName);
-		*/
-		int i;
-		for(i=0;i<7;i++){
-			channelList[i].number = i + 1;
-			strcpy(channelList[i].providerName,sdtTable->sdtElementaryInfoArray[i].descriptor.providerName);
-			strcpy(channelList[i].serviceName,sdtTable->sdtElementaryInfoArray[i].descriptor.serviceName);
+			int i;
+			for(i=0;i<7;i++){
+				channelList[i].number = i + 1;
+				strcpy(channelList[i].providerName,sdtTable->sdtElementaryInfoArray[i].descriptor.providerName);
+				strcpy(channelList[i].serviceName,sdtTable->sdtElementaryInfoArray[i].descriptor.serviceName);
 
-			/*printf("Number :%d\n",channelList[i].number);
-			printf("Provider :%s\n",channelList[i].providerName);
-			printf("Service :%s\n",channelList[i].serviceName);*/
-
-		}
-
-		/*
-		channelList[0].number = 1;
-		strcpy(channelList[0].providerName,sdtTable->sdtElementaryInfoArray[0].descriptor.providerName);
-		strcpy(channelList[0].serviceName,sdtTable->sdtElementaryInfoArray[0].descriptor.serviceName);
-
-		printf("Number :%d\n",channelList[0].number);
-		printf("Provider :%s\n",channelList[0].providerName);
-		printf("Service :%s\n",channelList[0].serviceName);
-		*/
-		
-		
-            //printPatTable(patTable);
+			}
             pthread_mutex_lock(&demuxMutex);
 		    pthread_cond_signal(&demuxCond);
-		    pthread_mutex_unlock(&demuxMutex);
-	
-            
+		    pthread_mutex_unlock(&demuxMutex);            
         }
-		
 	}
-
-
-
 
     return 0;
 }

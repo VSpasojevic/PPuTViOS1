@@ -120,8 +120,7 @@ typedef struct _SdtElementaryInfo{
 	uint8_t eitPresentFollowing;/* last bit EIT_present_following_flag*/
 	uint8_t runningStatus;/* 3 bits */
 	uint8_t freeCaMode; /*1 bit-scrabled or unscramled*/				
-	/*descriptors_loop_length*/
-	uint16_t descriptorLoopLength;/*12 bits*/
+	uint16_t descriptorLoopLength;/*12 bits descriptors_loop_length*/
 	SdtServiceDescriptor descriptor;
 }SdtElementaryInfo;
 

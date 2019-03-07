@@ -31,7 +31,7 @@ static ChannelInfo channelInfo;
 
 static argStruct* confStruct;
 
-
+static uint8_t channelFlag;
 
 
 
@@ -89,6 +89,7 @@ int main(int agrc,char** argv)
 				break;
 			case 3:	confStruct->programNumber = atoi(str);
 				printf("Program Number: %d\n",confStruct->programNumber);
+				channelFlag = confStruct->programNumber;
 				break;
 			
 			case 4:	confStruct->videoPid = atoi(str);
@@ -210,31 +211,52 @@ void remoteControllerCallback(uint16_t code, uint16_t type, uint32_t value)
 			break;
 		case KEYCODE_CH1:
 		        printf("\nCH1 pressed\n");
-            		channel(KEYCODE_CH1 - 2);
+				if(channelFlag != 1){
+					channelFlag = 1;
+					channel(KEYCODE_CH1 - 2);
+				}           		
 			break;
 		case KEYCODE_CH2:
 		        printf("\nCH2 pressed\n");
-            		channel(KEYCODE_CH2 - 2);
+            	if(channelFlag != 2){
+					channelFlag = 2;
+					channel(KEYCODE_CH2 - 2);
+				}     
 			break;
 		case KEYCODE_CH3:
 		        printf("\nCH3 pressed\n");
-            		channel(KEYCODE_CH3 - 2);
+            	if(channelFlag != 3){
+					channelFlag = 3;
+					channel(KEYCODE_CH3 - 2);
+				}     
 			break;
 		case KEYCODE_CH4:
 		        printf("\nCH4 pressed\n");
-            		channel(KEYCODE_CH4 - 2);
+            	if(channelFlag != 4){
+					channelFlag = 4;
+					channel(KEYCODE_CH4 - 2);
+				}
 			break;
 		case KEYCODE_CH5:
 		        printf("\nCH5 pressed\n");
-            		channel(KEYCODE_CH5 - 2);
+            	if(channelFlag != 5){
+					channelFlag = 5;
+					channel(KEYCODE_CH5 - 2);
+				}
 			break;
 		case KEYCODE_CH6:
 		        printf("\nCH6 pressed\n");
-            		channel(KEYCODE_CH6 - 2);
+            	if(channelFlag != 6){
+					channelFlag = 6;
+					channel(KEYCODE_CH6 - 2);
+				}     
 			break;
 		case KEYCODE_CH7:
 		        printf("\nCH7 pressed\n");
-            		channel(KEYCODE_CH7 - 2);
+            	if(channelFlag != 7){
+					channelFlag = 7;
+					channel(KEYCODE_CH7 - 2);
+				}
 			break;		
 		case KEYCODE_MUTE:
 		        printf("\nMUTE pressed\n");
