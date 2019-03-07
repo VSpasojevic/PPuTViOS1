@@ -35,13 +35,21 @@ static uint8_t channelFlag;
 
 
 
-int main(int agrc,char** argv)
+int main(int argc,char** argv)
 {
 	char datName[10];
 	memset(datName,0,10);
 	FILE* file;
 	char str[999];
 	int argCounter = 0;
+
+	if(argc != 2){
+		printf("Not enough parametars in command line!!!\nPut program and configuration file\n");
+		return 0;
+
+	}
+
+
 
 	//alocate memory for argument structure
 	
